@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎙️ MICRO OBR V3 (FIX RED)</title>
+    <title>🎙️ MICRO OBR (V4 FINAL)</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
@@ -60,7 +60,7 @@
         
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        #status { margin-top: 15px; font-size: 0.8rem; color: #666; font-family: monospace; text-align: center; }
+        #status { margin-top: 15px; font-size: 0.8rem; color: #666; font-family: monospace; text-align: center; word-break: break-word;}
         
         /* INPUT MANUAL */
         #manual-area { display: none; width: 100%; max-width: 400px; display: flex; gap: 5px; margin-top: 10px; }
@@ -78,13 +78,13 @@
     </div>
 
     <div class="test-panel">
-        <span class="label-fix">1. SELECCIONA FUENTE DE AUDIO:</span>
-        <select id="mic-select" onchange="startAudioStream()"></select>
+        <span class="label-fix">1. FUENTE DE AUDIO (GOLPEA PARA PROBAR):</span>
+        <select id="mic-select" onchange="restartAudioStream()"></select>
         
         <div class="vu-container">
             <div id="vu-bar" class="vu-bar"></div>
         </div>
-        <div class="vu-text">Prueba golpeando el micro externo</div>
+        <div class="vu-text">Si la barra no se mueve, no está seleccionado.</div>
     </div>
 
     <div id="qr-reader"></div>
@@ -100,18 +100,33 @@
         </div>
     </div>
 
-    <div id="status">Esperando configuración...</div>
+    <div id="status">Cargando sistema...</div>
 
     <audio id="fake-audio" loop playsinline src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjIwLjEwMAAAAAAAAAAAAAAA//oeGQAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"></audio>
 
 <script>
-    // CONFIGURACIÓN DE RED (STUN SERVERS PARA 4G)
+    // --- SOLUCIÓN DE RED (TURN SERVERS) ---
+    // Esto permite que los datos crucen de 4G a WiFi
     const peerConfig = {
         config: {
             iceServers: [
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
+                { urls: 'stun:stun.l.google.com:19302' },
+                // Servidores públicos gratuitos de OpenRelay Project (Vital para 4G)
+                { 
+                    urls: "turn:openrelay.metered.ca:80",
+                    username: "openrelayproject",
+                    credential: "openrelayproject"
+                },
+                { 
+                    urls: "turn:openrelay.metered.ca:443",
+                    username: "openrelayproject",
+                    credential: "openrelayproject"
+                },
+                { 
+                    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+                    username: "openrelayproject",
+                    credential: "openrelayproject"
+                }
             ]
         }
     };
@@ -128,19 +143,19 @@
     let isScanning = false, isConnected = false;
 
     // --- INICIO ---
-    // Generar ID y Configurar Peer con servidores STUN
     const myId = "obr-mic-" + Math.floor(Math.random()*10000);
+    
+    // Iniciar Peer con la configuración de red robusta
     peer = new Peer(myId, peerConfig);
     
-    peer.on('open', id => status.innerText = "Listo. ID Local: " + id);
-    peer.on('error', err => { status.innerText = "Error Red: " + err.type; alert("Error de conexión: " + err.type); });
+    peer.on('open', id => status.innerText = "Listo para conectar (Red Global)");
+    peer.on('error', err => { status.innerText = "Error Red: " + err.type; });
 
     // Cargar lista de micros al iniciar
     initAudioSystem();
 
     async function initAudioSystem() {
         try {
-            // Pedir permiso para leer etiquetas
             await navigator.mediaDevices.getUserMedia({ audio: true });
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioInputs = devices.filter(d => d.kind === 'audioinput');
@@ -149,10 +164,9 @@
             audioInputs.forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d.deviceId;
-                // Intentar identificar externos
                 let name = d.label || "Microfono Generico";
-                if(name.toLowerCase().includes('headset') || name.toLowerCase().includes('wired')) {
-                    name = "🎧 " + name.toUpperCase() + " (RECOMENDADO)";
+                if(name.toLowerCase().includes('headset') || name.toLowerCase().includes('wired') || name.toLowerCase().includes('external')) {
+                    name = "🎧 " + name.toUpperCase() + " (EXTERNO)";
                 }
                 opt.text = name;
                 micSelect.appendChild(opt);
@@ -161,7 +175,6 @@
             // Seleccionar el último (usualmente el externo)
             if(audioInputs.length > 1) micSelect.selectedIndex = audioInputs.length - 1;
             
-            // INICIAR AUDIO INMEDIATAMENTE PARA PROBAR
             startAudioStream();
 
         } catch (e) {
@@ -169,30 +182,26 @@
         }
     }
 
+    // ESTA FUNCIÓN SÓLO SE USA PARA EL VÚMETRO (PRUEBA)
     async function startAudioStream() {
-        // Detener stream anterior si existe
         if(activeStream) activeStream.getTracks().forEach(t => t.stop());
         
         const deviceId = micSelect.value;
         try {
-            // CONFIGURACIÓN "RAW" PARA EVITAR PROCESAMIENTO DEL CELULAR
             activeStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     deviceId: { exact: deviceId },
-                    echoCancellation: false,
+                    echoCancellation: false, 
                     noiseSuppression: false,
-                    autoGainControl: false,
-                    channelCount: 1
+                    autoGainControl: false 
                 }
             });
-
-            // Activar visualizador (Vúmetro)
             startVisualizer(activeStream);
-            status.innerText = "Micro activo. Golpea para probar nivel.";
+        } catch (e) { status.innerText = "Error al abrir micro: " + e; }
+    }
 
-        } catch (e) {
-            alert("No se pudo abrir ese micrófono. Intenta otro.");
-        }
+    function restartAudioStream() {
+        startAudioStream(); // Reiniciar al cambiar selección
     }
 
     function startVisualizer(stream) {
@@ -201,22 +210,17 @@
         analyser = audioContext.createAnalyser();
         microphone = audioContext.createMediaStreamSource(stream);
         jsNode = audioContext.createScriptProcessor(2048, 1, 1);
-
         analyser.smoothingTimeConstant = 0.3;
         analyser.fftSize = 1024;
-
         microphone.connect(analyser);
         analyser.connect(jsNode);
         jsNode.connect(audioContext.destination);
-
         jsNode.onaudioprocess = () => {
             const array = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(array);
-            let values = 0;
-            for (let i = 0; i < array.length; i++) values += array[i];
+            let values = 0; for (let i = 0; i < array.length; i++) values += array[i];
             const average = values / array.length;
-            // Mover barra
-            vuBar.style.width = Math.min(100, average * 2.5) + "%";
+            vuBar.style.width = Math.min(100, average * 3) + "%";
         };
     }
 
@@ -232,7 +236,6 @@
         isScanning = true;
         qrContainer.style.display = 'block';
         btnText.innerText = "CANCELAR";
-        
         html5QrCode = new Html5Qrcode("qr-reader");
         html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
             (decodedText) => { stopScanner(); connectToMixer(decodedText); },
@@ -246,9 +249,7 @@
 
     function stopScanner() {
         isScanning = false;
-        if(html5QrCode) html5QrCode.stop().then(() => { 
-            qrContainer.style.display = 'none'; html5QrCode.clear(); 
-        }).catch(e=>{ qrContainer.style.display = 'none'; });
+        if(html5QrCode) html5QrCode.stop().then(() => { qrContainer.style.display = 'none'; html5QrCode.clear(); }).catch(e=>{ qrContainer.style.display = 'none'; });
         btnText.innerText = "ESCANEAR ENLACE";
     }
 
@@ -257,29 +258,54 @@
         if(id) connectToMixer(id);
     }
 
-    function connectToMixer(mixerId) {
-        status.innerText = "Conectando con Base... (Puede tardar en 4G)";
+    async function connectToMixer(mixerId) {
+        status.innerText = "Conectando... (Espera...)";
         status.style.color = "yellow";
 
-        // Trucos para mantener vivo en segundo plano
-        document.getElementById('fake-audio').play().catch(e=>{});
-        if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(e=>{});
+        // 1. DETENER AUDIO DE PRUEBA PARA LIBERAR EL RECURSO
+        if(activeStream) {
+            activeStream.getTracks().forEach(t => t.stop());
+            if(audioContext) audioContext.close();
+        }
 
-        // LLAMADA REAL
-        if(!activeStream) { alert("Error: No hay audio seleccionado"); return; }
-        
-        currentCall = peer.call(mixerId, activeStream);
-        
-        // Eventos de llamada
-        currentCall.on('open', () => {
-            // Aunque 'open' no siempre dispara en solo-audio, lo simulamos
-        });
-        
-        // PeerJS a veces no dispara 'open' rápido en audio, asumimos éxito visual
-        setConnectedState(true);
-        
-        currentCall.on('close', () => disconnect());
-        currentCall.on('error', (e) => { alert("Error llamada: "+e); disconnect(); });
+        // 2. OBTENER STREAM NUEVO Y LIMPIO PARA LA TRANSMISIÓN
+        const deviceId = micSelect.value;
+        try {
+            const callStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    deviceId: { exact: deviceId },
+                    // IMPORTANTE: Desactivar todo procesamiento para forzar micro externo
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false,
+                    channelCount: 1
+                }
+            });
+
+            // 3. HACKS PARA SEGUNDO PLANO
+            document.getElementById('fake-audio').play().catch(e=>{});
+            if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(e=>{});
+
+            // 4. INICIAR LLAMADA CON CONFIGURACIÓN TURN
+            currentCall = peer.call(mixerId, callStream);
+            
+            // 5. UI
+            setConnectedState(true);
+            status.innerText = "🔴 EN AIRE - CONECTANDO...";
+
+            currentCall.on('close', () => disconnect());
+            currentCall.on('error', (e) => { alert("Error llamada: "+e); disconnect(); });
+            
+            // NOTA: En llamadas solo-audio, a veces 'stream' remoto no llega de vuelta, 
+            // así que asumimos éxito si no da error en 3 segundos.
+            setTimeout(() => {
+                if(isConnected) status.innerText = "🔴 CONECTADO A BASE (4G/WIFI)";
+            }, 3000);
+
+        } catch(e) {
+            alert("Error al tomar control del microfono: " + e);
+            disconnect();
+        }
     }
 
     function setConnectedState(connected) {
@@ -287,7 +313,6 @@
         if(connected) {
             btn.classList.add('live');
             btn.innerHTML = "🛑 DETENER TRANSMISIÓN";
-            status.innerText = "🔴 EN AIRE - CONECTADO A BASE";
             status.style.color = "#ff0000";
             micSelect.disabled = true;
             document.getElementById('manual-area').style.display = 'none';
@@ -297,6 +322,8 @@
             status.innerText = "Desconectado";
             status.style.color = "#aaa";
             micSelect.disabled = false;
+            // Reactivar vúmetro de prueba
+            startAudioStream();
         }
     }
 
