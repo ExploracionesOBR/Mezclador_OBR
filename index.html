@@ -2,36 +2,195 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA AUDIO OBR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <title>EXPLORACIONES OBR</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
     <style>
-        body { background: #000; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        h1 { color: #00d2ff; }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 10px;
-            text-decoration: none;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: white;
+        :root {
+            --primary: #00d2ff;
+            --mic-color: #ff3333;
+            --detect-color: #00ff41;
+            --glass-bg: rgba(10, 10, 10, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.15);
         }
-        .jefe { background: #004400; border: 2px solid #0f0; }
-        .explorador { background: #440000; border: 2px solid #f00; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            
+            /* FONDO DE PANTALLA CONFIGURADO */
+            background: url('fondo_pantalla.jpg') no-repeat center center fixed;
+            background-size: cover;
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Sombra oscura sobre la imagen para que se lea el texto */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* HEADER CON LOGO */
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+            animation: fadeDown 1s ease;
+        }
+
+        .logo-img {
+            width: 120px; /* Tamaño del Logo */
+            height: auto;
+            filter: drop-shadow(0 0 20px rgba(0, 210, 255, 0.4));
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            margin: 0;
+            text-shadow: 0 0 10px var(--primary);
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: #aaa;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        /* TARJETAS DE MENÚ */
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            text-decoration: none;
+            border-radius: 15px;
+            
+            /* Efecto Cristal */
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            opacity: 0; /* Para la animación */
+            animation: fadeUp 0.8s ease forwards;
+        }
+
+        /* Colores específicos por borde */
+        .btn-mezclador { border-left: 5px solid var(--primary); animation-delay: 0.2s; }
+        .btn-micro { border-left: 5px solid var(--mic-color); animation-delay: 0.3s; }
+        .btn-detector { border-left: 5px solid var(--detect-color); animation-delay: 0.4s; }
+
+        /* Hover Efectos */
+        .menu-btn:active { transform: scale(0.97); background: rgba(50,50,50,0.9); }
+
+        .icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-right: 20px;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.4);
+        }
+
+        /* Colores de iconos */
+        .btn-mezclador .icon { color: var(--primary); box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); }
+        .btn-micro .icon { color: var(--mic-color); box-shadow: 0 0 15px rgba(255, 51, 51, 0.2); }
+        .btn-detector .icon { color: var(--detect-color); box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
+
+        .text-group { display: flex; flex-direction: column; }
+        .btn-title { color: white; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: bold; margin-bottom: 3px; }
+        .btn-desc { color: #bbb; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; }
+
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #555;
+            font-size: 0.7rem;
+            font-family: monospace;
+        }
+
+        /* ANIMACIONES */
+        @keyframes fadeDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
     </style>
 </head>
 <body>
-    <h1>👻 SISTEMA OBR</h1>
-    <p>Elige tu rol:</p>
 
-    <a href="Mezclador.html" class="btn jefe">
-        🎛️ SOY LA BASE<br>(Mezclador)
-    </a>
+    <div class="overlay"></div>
 
-    <a href="microfonos.html" class="btn explorador">
-        🎙️ SOY EXPLORADOR<br>(Micrófono)
-    </a>
+    <div class="app-container">
+        
+        <div class="header">
+            <img src="obr-logo.png" alt="Logo OBR" class="logo-img">
+            <h1>OBR SYSTEM</h1>
+            <div class="subtitle">PANEL DE CONTROL V12</div>
+        </div>
+
+        <a href="Mezclador.html" class="menu-btn btn-mezclador">
+            <div class="icon"><i class="fas fa-sliders-h"></i></div>
+            <div class="text-group">
+                <span class="btn-title">MEZCLADOR</span>
+                <span class="btn-desc">BASE CENTRAL | CONTROL TOTAL</span>
+            </div>
+        </a>
+
+        <a href="Microfono.html" class="menu-btn btn-micro">
+            <div class="icon"><i class="fas fa-microphone-lines"></i></div>
+            <div class="text-group">
+                <span class="btn-title">MICRÓFONO</span>
+                <span class="btn-desc">ENLACE REMOTO | ESCÁNER QR</span>
+            </div>
+        </a>
+
+        <a href="Detector.html" class="menu-btn btn-detector">
+            <div class="icon"><i class="fas fa-radar"></i></div>
+            <div class="text-group">
+                <span class="btn-title">DETECTOR PRO</span>
+                <span class="btn-desc">SENSORES | CÁMARA | AUDIO RX</span>
+            </div>
+        </a>
+
+        <div class="footer">
+            © EXPLORACIONES OBR<br>ACCESO AUTORIZADO ÚNICAMENTE
+        </div>
+
+    </div>
+
 </body>
 </html>
