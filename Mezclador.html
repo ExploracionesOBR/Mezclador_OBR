@@ -3,331 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎛️ MEZCLADOR PRO V2</title>
+    <title>🎛️ EXPLORACIONES OBR - MEZCLADOR</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --bg-console: #1a1a1a;
-            --bg-strip: #0f0f0f;
             --accent: #00d2ff;
-            --meter-bg: #050505;
+            --meter-bg: rgba(0,0,0,0.8);
         }
         body { 
-            background-color: #050505; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; 
+            /* FONDO DE PANTALLA DEL REPOSITORIO */
+            background: url('fondo_pantalla.jpg') no-repeat center center fixed; 
+            background-size: cover;
+            color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; 
             margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box;
+            backdrop-filter: brightness(0.4); /* Oscurecer un poco el fondo para leer mejor */
         }
-        h1 { color: var(--accent); margin: 0 0 10px 0; font-size: 1.2rem; text-align: center; }
+
+        /* CABECERA CON LOGO */
+        header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--accent);
+        }
+        .logo-container { display: flex; align-items: center; gap: 10px; }
+        .obr-logo { height: 50px; width: auto; }
+        h1 { color: var(--accent); margin: 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* BOTÓN PARA MOSTRAR QR */
+        .btn-show-qr {
+            background: var(--accent); color: #000; border: none; padding: 10px 15px;
+            border-radius: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;
+        }
 
         /* CONTENEDOR PRINCIPAL DE LA CONSOLA */
         #console-container {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto; /* Scroll horizontal si hay muchos canales */
-            flex-grow: 1;
-            background: var(--bg-console);
-            padding: 15px;
-            border-radius: 8px;
-            border-top: 3px solid var(--accent);
+            display: flex; gap: 10px; overflow-x: auto; flex-grow: 1;
+            background: rgba(0,0,0,0.6); /* Fondo semitransparente */
+            padding: 15px; border-radius: 8px; backdrop-filter: blur(5px);
         }
 
-        /* --- CHANNEL STRIP (TIRA DE CANAL VERTICAL) --- */
+        /* --- CHANNEL STRIP (TIRA DE CANAL) --- */
         .channel-strip {
-            background: var(--bg-strip);
-            border: 1px solid #333;
-            border-radius: 4px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 90px;
-            flex-shrink: 0; /* Evitar que se aplasten */
+            background: rgba(20,20,20,0.8); border: 1px solid #333; border-radius: 4px; padding: 10px;
+            display: flex; flex-direction: column; align-items: center; min-width: 90px; flex-shrink: 0;
         }
-        .strip-title { font-size: 0.7rem; font-weight: bold; margin-bottom: 10px; text-align: center; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+        .strip-title { font-size: 0.7rem; font-weight: bold; margin-bottom: 10px; text-align: center; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
         .local-mic-title { color: var(--accent); }
         
-        /* ÁREA CENTRAL: MEDIDOR Y FADER */
-        .fader-area {
-            display: flex;
-            gap: 10px;
-            height: 200px; /* Altura de los controles */
-            margin-bottom: 15px;
-        }
+        .fader-area { display: flex; gap: 10px; height: 180px; margin-bottom: 15px; }
 
-        /* MEDIDOR VERTICAL (VÚMETRO) ESTILO IMAGEN */
-        .meter-container {
-            width: 18px;
-            height: 100%;
-            background: var(--meter-bg);
-            border: 1px solid #222;
-            border-radius: 2px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 0 5px #000;
-        }
-        /* El gradiente de fondo (Verde -> Amarillo -> Rojo) */
-        .meter-gradient {
-            position: absolute; inset: 0;
-            background: linear-gradient(to top, 
-                #00ff00 0%,   /* Verde abajo */
-                #00ff00 50%, 
-                #ffff00 75%,  /* Amarillo medio */
-                #ff0000 100%  /* Rojo arriba */
-            );
-            z-index: 1;
-        }
-        /* La "máscara" negra que baja para revelar el color */
-        .meter-mask {
-            position: absolute; top: 0; left: 0; width: 100%;
-            background: var(--meter-bg);
-            height: 100%; /* Empieza tapando todo */
-            z-index: 2;
-            transition: height 0.08s ease-out; /* Suavizado rápido */
-        }
-        /* Líneas de escala decorativas */
-        .meter-scale {
-            position: absolute; inset: 0; z-index: 3; pointer-events: none;
-            background: repeating-linear-gradient(to top, transparent 0px, transparent 4px, rgba(0,0,0,0.5) 5px);
-        }
+        /* MEDIDOR VÚMETRO */
+        .meter-container { width: 18px; height: 100%; background: var(--meter-bg); border: 1px solid #555; border-radius: 2px; position: relative; overflow: hidden; }
+        .meter-gradient { position: absolute; inset: 0; background: linear-gradient(to top, #00ff00 0%, #00ff00 50%, #ffff00 75%, #ff0000 100%); z-index: 1; }
+        .meter-mask { position: absolute; top: 0; left: 0; width: 100%; background: var(--meter-bg); height: 100%; z-index: 2; transition: height 0.08s ease-out; }
+        .meter-scale { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: repeating-linear-gradient(to top, transparent 0px, transparent 4px, rgba(0,0,0,0.8) 5px); }
 
-        /* FADER VERTICAL (SLIDER) */
-        /* Usamos -webkit-appearance para navegadores móviles modernos */
-        input[type=range][orient=vertical] {
-            writing-mode: bt-lr; /* IE/Edge */
-            -webkit-appearance: slider-vertical; /* Webkit (Chrome/Safari) */
-            width: 30px;
-            height: 100%;
-            padding: 0;
-            margin: 0;
-            cursor: pointer;
-            accent-color: var(--accent);
-        }
+        /* FADER VERTICAL */
+        input[type=range][orient=vertical] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 30px; height: 100%; margin: 0; cursor: pointer; accent-color: var(--accent); }
 
-        /* BOTONES Y ESTADOS */
-        .btn-mute {
-            width: 100%; padding: 8px; background: #222; border: 1px solid #444; color: #fff;
-            font-size: 0.7rem; font-weight: bold; cursor: pointer; border-radius: 4px;
-        }
+        .btn-mute { width: 100%; padding: 8px; background: #222; border: 1px solid #444; color: #fff; font-size: 0.7rem; font-weight: bold; cursor: pointer; border-radius: 4px; }
         .btn-mute.muted { background: #ff0000; border-color: #ff0000; color: #000; }
-        
         .status-indicator { font-size: 0.6rem; margin-top: 5px; color: #0f0; }
-
-        /* --- SECCIÓN MASTER --- */
-        .master-strip {
-            border: 2px solid var(--accent);
-            background: #111;
-            margin-left: auto; /* Empujar a la derecha si hay espacio */
-        }
+        .master-strip { border: 2px solid var(--accent); background: rgba(30,30,30,0.9); margin-left: auto; }
         .master-title { color: var(--accent); font-size: 0.9rem; }
 
-        /* --- OVERLAY INICIO --- */
-        #overlay { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; justify-content: center; align-items: center; }
-        #btn-start { padding: 20px 40px; font-size: 1.5rem; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px var(--accent); }
+        /* --- OVERLAYS (INICIO Y QR) --- */
+        .overlay-fullscreen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 99; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        #btn-start { padding: 20px 40px; font-size: 1.5rem; background: var(--accent); border: none; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px var(--accent); animation: pulse 2s infinite; }
+        @keyframes pulse { 50% { transform: scale(1.05); } }
+
+        /* ESTILOS DEL MODAL QR */
+        #qr-modal { display: none; z-index: 200; }
+        .qr-box { background: #fff; padding: 20px; border-radius: 10px; text-align: center; color: #000; }
+        #qrcode { margin: 20px auto; }
+        .close-qr { margin-top: 20px; padding: 10px 30px; background: #333; color: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="overlay"><button id="btn-start">ENCENDER CONSOLA 🎛️</button></div>
+    <div id="start-overlay" class="overlay-fullscreen">
+        <img src="obr-logo.png" style="width: 100px; margin-bottom: 20px;">
+        <button id="btn-start">INICIAR CONSOLA</button>
+    </div>
 
-    <h1>🎛️ MEZCLADOR PRO</h1>
-    <div style="color: #666; font-size: 0.8rem; text-align: center; margin-bottom: 10px;">ID: obr-mezclador-central</div>
+    <div id="qr-modal" class="overlay-fullscreen" style="background: rgba(0,0,0,0.85);">
+        <div class="qr-box">
+            <h2 style="margin:0; color:#000;">ENLAZAR MICRÓFONO</h2>
+            <p>Escanea esto con el celular explorador</p>
+            <div id="qrcode"></div>
+            <button class="close-qr" onclick="toggleQR(false)">CERRAR</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo-container">
+            <img src="obr-logo.png" alt="OBR Logo" class="obr-logo">
+            <h1>EXPLORACIONES OBR</h1>
+        </div>
+        <button class="btn-show-qr" onclick="toggleQR(true)">📱 ENLAZAR</button>
+    </header>
 
     <div id="console-container">
         <div class="channel-strip master-strip" id="master-channel" style="order: 99;">
             <div class="strip-title master-title">MAIN OUTPUT</div>
             <div class="fader-area">
                 <div class="meter-container">
-                    <div class="meter-gradient"></div>
-                    <div class="meter-scale"></div>
-                    <div class="meter-mask" id="mask-master"></div>
+                    <div class="meter-gradient"></div><div class="meter-scale"></div><div class="meter-mask" id="mask-master"></div>
                 </div>
                 <input type="range" orient="vertical" id="master-fader" min="0" max="2" step="0.01" value="1">
             </div>
             <div style="font-size: 0.7rem; color: #aaa;">MASTER GAIN</div>
         </div>
-        
-        </div>
+    </div>
 
     <audio id="silence-hack" loop src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjIwLjEwMAAAAAAAAAAAAAAA//oeGQAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"></audio>
 
 <script>
-    const MY_ID = "obr-mezclador-central";
-    let audioCtx, broadcastNode, monitorNode, masterGain, masterAnalyser;
-    let peer;
-    let mixStreams = new Map(); // Para guardar referencias a los nodos
+    const MY_ID_PREFIX = "obr-mix-"; // Prefijo para identificar fácil
+    let peer, audioCtx, masterGain, masterAnalyser;
 
+    // 1. INICIALIZACIÓN
     document.getElementById('btn-start').addEventListener('click', async () => {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        // --- RUTA MASTER ---
         masterGain = audioCtx.createGain();
-        masterGain.gain.value = 1; // Valor inicial del fader master
-
-        masterAnalyser = audioCtx.createAnalyser();
-        masterAnalyser.fftSize = 128; // Tamaño pequeño para respuesta rápida
-        masterAnalyser.smoothingTimeConstant = 0.8; // Suavizado del medidor
-
-        broadcastNode = audioCtx.createMediaStreamDestination();
-        monitorNode = audioCtx.createGain(); monitorNode.gain.value = 1; monitorNode.connect(audioCtx.destination);
-
-        // Conexiones Master: Mezcla -> Gain Master -> Analizador -> Salidas
+        masterAnalyser = audioCtx.createAnalyser(); masterAnalyser.fftSize = 128;
+        
         masterGain.connect(masterAnalyser);
-        masterGain.connect(broadcastNode);
-        // masterGain.connect(monitorNode); // Descomentar si quieres escuchar el master en tus bocinas siempre
+        masterGain.connect(audioCtx.destination); // Salida a bocinas del PC
 
-        // Iniciar animación del medidor Master
         animateMeter(masterAnalyser, 'mask-master');
 
-        // --- PEERJS ---
-        peer = new Peer(MY_ID);
+        // Generar ID único para esta sesión
+        const uniqueId = MY_ID_PREFIX + Math.random().toString(36).substr(2, 5).toUpperCase();
+        peer = new Peer(uniqueId);
+
+        peer.on('open', id => {
+            console.log("Mezclador listo ID:", id);
+            // GENERAR EL CÓDIGO QR AQUÍ
+            new QRCode(document.getElementById("qrcode"), {
+                text: id, // El texto del QR es el ID
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            // Mostrar el QR automáticamente al iniciar
+            toggleQR(true);
+        });
+
         peer.on('call', call => {
             call.answer();
             call.on('stream', stream => addChannelStrip(call.peer, stream));
             call.on('close', () => removeChannelStrip(call.peer));
         });
 
-        // Conexión de datos del Detector
-        peer.on('connection', conn => {
-            setTimeout(() => { peer.call(conn.peer, broadcastNode.stream); }, 1000);
-            conn.on('data', data => {
-                console.log("Comando:", data.cmd);
-                monitorNode.gain.value = (data.cmd === 'RX_OFF') ? 1 : 0;
-            });
-            conn.on('close', () => { monitorNode.gain.value = 1; }); // Si se desconecta, activar monitor
-        });
-
-        // --- MICROFONO LOCAL ---
+        // Activar micro local
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+            const stream = await navigator.mediaDevices.getUserMedia({audio: true});
             addChannelStrip("LOCAL", stream, true);
         } catch(e) { console.log("Sin mic local"); }
 
         document.getElementById('silence-hack').play();
-        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('start-overlay').style.display = 'none';
 
-        // Fader Master Evento
-        document.getElementById('master-fader').addEventListener('input', e => {
-            masterGain.gain.value = e.target.value;
-        });
+        document.getElementById('master-fader').addEventListener('input', e => masterGain.gain.value = e.target.value);
     });
 
-    // --- FUNCIONES DE LA INTERFAZ ---
+    function toggleQR(show) {
+        document.getElementById('qr-modal').style.display = show ? 'flex' : 'none';
+    }
 
+    // --- FUNCIONES DE CANALES (Igual que V2) ---
     function addChannelStrip(id, stream, isLocal = false) {
-        if(document.getElementById('strip-' + id)) return; // Evitar duplicados
-
+        if(document.getElementById('strip-' + id)) return;
         const consoleContainer = document.getElementById('console-container');
-        
-        // 1. Crear Nodos de Audio para este canal
         const source = audioCtx.createMediaStreamSource(stream);
         const channelGain = audioCtx.createGain();
-        const channelAnalyser = audioCtx.createAnalyser();
-        channelAnalyser.fftSize = 128;
-        channelAnalyser.smoothingTimeConstant = 0.8;
+        const channelAnalyser = audioCtx.createAnalyser(); channelAnalyser.fftSize = 128;
+        source.connect(channelGain); channelGain.connect(channelAnalyser); channelGain.connect(masterGain);
 
-        // Ruteo: Fuente -> Gain del Canal -> Analizador -> Master Mix
-        source.connect(channelGain);
-        channelGain.connect(channelAnalyser);
-        channelGain.connect(masterGain);
-
-        // Guardar referencias
-        mixStreams.set(id, { source, gain: channelGain, analyser: channelAnalyser });
-
-        // 2. Crear HTML del Channel Strip
-        const strip = document.createElement('div');
-        strip.className = 'channel-strip';
-        strip.id = 'strip-' + id;
-        // Insertar antes del Master
-        strip.style.order = isLocal ? 1 : 10; 
-
+        const strip = document.createElement('div'); strip.className = 'channel-strip'; strip.id = 'strip-' + id; strip.style.order = isLocal ? 1 : 10;
         const titleClass = isLocal ? 'strip-title local-mic-title' : 'strip-title';
-        const titleText = isLocal ? '🎙️ LOCAL MIC' : `📱 ${id.substring(0,5)}...`;
+        const titleText = isLocal ? '🎙️ LOCAL MIC' : `📱 ${id.replace('obr-mic-','')}`; // Limpiar ID para mostrar
 
-        strip.innerHTML = `
-            <div class="${titleClass}" title="${id}">${titleText}</div>
-            <div class="fader-area">
-                <div class="meter-container">
-                    <div class="meter-gradient"></div>
-                    <div class="meter-scale"></div>
-                    <div class="meter-mask" id="mask-${id}"></div>
-                </div>
-                <input type="range" orient="vertical" class="channel-fader" min="0" max="2" step="0.01" value="1">
-            </div>
-            <button class="btn-mute">MUTE</button>
-            ${!isLocal ? '<div class="status-indicator">● LIVE</div>' : ''}
-        `;
-
+        strip.innerHTML = `<div class="${titleClass}">${titleText}</div><div class="fader-area"><div class="meter-container"><div class="meter-gradient"></div><div class="meter-scale"></div><div class="meter-mask" id="mask-${id}"></div></div><input type="range" orient="vertical" class="channel-fader" min="0" max="2" step="0.01" value="1"></div><button class="btn-mute">MUTE</button>${!isLocal ? '<div class="status-indicator">● LIVE</div>' : ''}`;
         consoleContainer.appendChild(strip);
 
-        // 3. Conectar Eventos de la UI
-        const fader = strip.querySelector('.channel-fader');
-        const muteBtn = strip.querySelector('.btn-mute');
-        let isMuted = false;
-        let lastVol = 1;
-
-        // Fader (Gain)
-        fader.addEventListener('input', e => {
-            if(!isMuted) channelGain.gain.value = e.target.value;
-        });
-
-        // Mute
-        muteBtn.addEventListener('click', () => {
-            isMuted = !isMuted;
-            if(isMuted) {
-                lastVol = fader.value;
-                channelGain.gain.value = 0;
-                muteBtn.classList.add('muted');
-                muteBtn.innerText = "MUTED";
-                fader.disabled = true;
-            } else {
-                fader.value = lastVol;
-                channelGain.gain.value = lastVol;
-                muteBtn.classList.remove('muted');
-                muteBtn.innerText = "MUTE";
-                fader.disabled = false;
-            }
-        });
-
-        // Iniciar animación del medidor de este canal
+        const fader = strip.querySelector('.channel-fader'); const muteBtn = strip.querySelector('.btn-mute'); let isMuted = false; let lastVol = 1;
+        fader.addEventListener('input', e => { if(!isMuted) channelGain.gain.value = e.target.value; });
+        muteBtn.addEventListener('click', () => { isMuted = !isMuted; if(isMuted) { lastVol = fader.value; channelGain.gain.value = 0; muteBtn.classList.add('muted'); muteBtn.innerText = "MUTED"; fader.disabled = true; } else { fader.value = lastVol; channelGain.gain.value = lastVol; muteBtn.classList.remove('muted'); muteBtn.innerText = "MUTE"; fader.disabled = false; } });
         animateMeter(channelAnalyser, `mask-${id}`);
     }
-
-    function removeChannelStrip(id) {
-        const strip = document.getElementById('strip-' + id);
-        if(strip) strip.remove();
-        if(mixStreams.has(id)) mixStreams.delete(id); // Limpiar referencias
-    }
-
-    // --- MOTOR DE ANIMACIÓN DE LOS MEDIDORES ---
+    function removeChannelStrip(id) { const strip = document.getElementById('strip-' + id); if(strip) strip.remove(); }
     const dataArray = new Uint8Array(128);
-
     function animateMeter(analyserNode, maskId) {
-        const maskElement = document.getElementById(maskId);
-        if(!maskElement || !analyserNode) return;
-
-        function draw() {
-             // Si el elemento ya no existe (canal desconectado), parar animación
-            if(!document.getElementById(maskId)) return;
-            requestAnimationFrame(draw);
-
-            analyserNode.getByteFrequencyData(dataArray);
-
-            // Calcular volumen promedio (RMS simple)
-            let sum = 0;
-            // Usamos solo una parte del espectro para la energía principal
-            for(let i = 0; i < dataArray.length / 2; i++) {
-                sum += dataArray[i] * dataArray[i];
-            }
-            const rms = Math.sqrt(sum / (dataArray.length / 2));
-            
-            // Convertir a porcentaje de altura (ajustar el divisor 200 para sensibilidad)
-            // Cuanto menor sea la máscara, más se ve la barra.
-            // 100% mascara = silencio. 0% mascara = volumen maximo.
-            let maskHeightPercentage = 100 - (rms / 200 * 100);
-            maskHeightPercentage = Math.max(0, Math.min(100, maskHeightPercentage)); // Limitar entre 0 y 100
-
-            maskElement.style.height = maskHeightPercentage + "%";
-        }
-        draw();
+        const maskElement = document.getElementById(maskId); if(!maskElement || !analyserNode) return;
+        function draw() { if(!document.getElementById(maskId)) return; requestAnimationFrame(draw); analyserNode.getByteFrequencyData(dataArray); let sum = 0; for(let i = 0; i < dataArray.length / 2; i++) sum += dataArray[i] * dataArray[i]; const rms = Math.sqrt(sum / (dataArray.length / 2)); let maskHeightPercentage = 100 - (rms / 200 * 100); maskHeightPercentage = Math.max(0, Math.min(100, maskHeightPercentage)); maskElement.style.height = maskHeightPercentage + "%"; } draw();
     }
 </script>
 </body>
