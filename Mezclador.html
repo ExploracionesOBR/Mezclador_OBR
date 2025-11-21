@@ -23,7 +23,6 @@
         }
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: -1; }
 
-        /* HEADER RESPONSIVE */
         header { 
             display: flex; align-items: center; justify-content: space-between; 
             margin-bottom: 10px; padding: 10px 15px; border-bottom: 2px solid var(--accent); 
@@ -36,16 +35,18 @@
         }
         .logo-corner { height: 40px; width: auto; }
 
-        /* STATUS & CONTROLS */
         .status-group { display: flex; gap: 10px; align-items: center; }
         .status-badge { 
             padding: 6px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; 
             border: 1px solid #444; background: #111; color: #666; text-transform: uppercase; white-space: nowrap;
         }
+        /* ESTADO CONECTADO (VERDE BRILLANTE) */
         .det-connected { 
-            background: rgba(0, 255, 65, 0.1); color: #00ff41; border-color: #00ff41; 
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3); animation: pulseStatus 2s infinite; 
+            background: rgba(0, 255, 65, 0.2); color: #00ff41; border-color: #00ff41; 
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); animation: pulseStatus 2s infinite; 
         }
+        @keyframes pulseStatus { 50% { box-shadow: 0 0 25px rgba(0, 255, 65, 0.7); } }
+
         .btn-link {
             background: #222; border: 1px solid #fff; color: #fff; 
             padding: 6px 12px; cursor: pointer; border-radius: 4px; font-family: 'Orbitron';
@@ -53,19 +54,15 @@
         }
         .btn-link:hover { background: #fff; color: #000; box-shadow: 0 0 15px white; }
 
-        /* CONSOLA SCROLLABLE */
         #console-container { 
             display: flex; gap: 15px; overflow-x: auto; flex-grow: 1; 
-            padding: 10px; align-items: stretch;
-            scrollbar-width: thin; scrollbar-color: var(--accent) #111;
+            padding: 10px; align-items: stretch; scrollbar-width: thin; scrollbar-color: var(--accent) #111;
         }
         
-        /* CHANNEL STRIP */
         .channel-strip { 
             background: var(--panel-bg); border: 1px solid #444; border-radius: 6px; padding: 10px; 
             display: flex; flex-direction: column; align-items: center; width: 100px; flex-shrink: 0; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5); position: relative;
-            height: 100%; max-height: 100%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); position: relative; height: 100%; max-height: 100%;
         }
         .strip-title { font-size: 0.7rem; font-weight: bold; margin-bottom: 5px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
         
@@ -74,17 +71,11 @@
             padding: 10px 0; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 5px;
         }
         
-        /* METER */
         .meter-container { width: 10px; height: 100%; background: #000; border: 1px solid #333; position: relative; border-radius: 2px; }
         .meter-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #00ff00, #ffff00, #ff0000); height: 0%; transition: height 0.05s; }
 
-        /* SLIDER VERTICAL */
-        input[type=range][orient=vertical] { 
-            writing-mode: bt-lr; -webkit-appearance: slider-vertical; 
-            width: 40px; height: 100%; margin: 0; cursor: ns-resize; 
-        }
+        input[type=range][orient=vertical] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 40px; height: 100%; margin: 0; cursor: ns-resize; }
         
-        /* INPUT DE VOLUMEN EDITABLE */
         .vol-input { 
             font-family: 'Orbitron'; font-size: 0.8rem; color: var(--accent); 
             margin-bottom: 5px; font-weight: bold; background: transparent;
@@ -92,44 +83,22 @@
             transition: border 0.2s; padding: 2px 0;
         }
         .vol-input:focus { outline: none; border-bottom: 1px solid var(--accent); background: rgba(0,0,0,0.5); }
-        .vol-input:disabled { color: #555; }
         
-        /* BOTON MUTE */
-        .btn-mute {
-            width: 100%; padding: 6px; margin-top: auto;
-            background: #222; border: 1px solid #444; color: #888;
-            font-size: 0.65rem; font-weight: bold; cursor: pointer;
-            border-radius: 3px; transition: 0.2s;
-        }
+        .btn-mute { width: 100%; padding: 6px; margin-top: auto; background: #222; border: 1px solid #444; color: #888; font-size: 0.65rem; font-weight: bold; cursor: pointer; border-radius: 3px; transition: 0.2s; }
         .btn-mute:hover { color: #fff; border-color: #666; }
-        .btn-mute.muted {
-            background: #500; border-color: #f00; color: #f00;
-            box-shadow: inset 0 0 5px #f00;
-        }
+        .btn-mute.muted { background: #500; border-color: #f00; color: #f00; box-shadow: inset 0 0 5px #f00; }
 
-        /* MASTER MIC & OUT */
         .master-mic { border: 2px solid #ffae00; background: rgba(40, 30, 10, 0.9); order: 1; }
         .master-out { border: 2px solid var(--accent); background: rgba(0, 30, 40, 0.9); order: 100; margin-left: auto; }
 
-        /* OVERLAY INICIO */
         #overlay { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; flex-direction: column; justify-content: center; align-items: center; background-image: url('./fondo_pantalla.jpg'); background-size: cover; }
         .overlay-content { background: rgba(0,0,0,0.9); padding: 30px; border-radius: 20px; border: 1px solid var(--accent); text-align: center; backdrop-filter: blur(10px); max-width: 90%; }
-        #btn-start { 
-            margin-top: 20px; padding: 15px 40px; font-size: 1.1rem; 
-            background: transparent; color: var(--accent); 
-            border: 2px solid var(--accent); border-radius: 50px; 
-            font-family: 'Orbitron'; cursor: pointer; transition: 0.3s;
-            box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); width: 100%;
-        }
+        #btn-start { margin-top: 20px; padding: 15px 40px; font-size: 1.1rem; background: transparent; color: var(--accent); border: 2px solid var(--accent); border-radius: 50px; font-family: 'Orbitron'; cursor: pointer; transition: 0.3s; box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); width: 100%; }
         #btn-start:hover { background: var(--accent); color: #000; box-shadow: 0 0 30px var(--accent); }
 
-        /* QR MODAL */
         #qr-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; justify-content: center; align-items: center; flex-direction: column; }
         #qrcode { background: white; padding: 15px; border-radius: 10px; border: 5px solid white; }
-        
-        @keyframes pulseStatus { 50% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.6); } }
 
-        /* AJUSTES VERTICALES */
         @media (max-width: 768px) {
             body { padding: 5px; }
             header { flex-direction: column; gap: 10px; align-items: center; text-align: center; }
@@ -168,7 +137,6 @@
     </header>
 
     <div id="console-container">
-        <!-- 1. MICROFONO MASTER -->
         <div class="channel-strip master-mic" id="mic-master">
             <div class="strip-title" style="color:#ffae00">🎤 MASTER</div>
             <input type="number" class="vol-input" id="val-mic" value="100" onchange="syncVol('mic', this.value)">
@@ -179,7 +147,6 @@
             <button class="btn-mute" id="mute-mic" onclick="toggleMute('mic')">MUTE</button>
         </div>
 
-        <!-- 2. SALIDA MASTER -->
         <div class="channel-strip master-out">
             <div class="strip-title" style="color:var(--accent)">🔊 SALIDA</div>
             <input type="number" class="vol-input" id="val-out" value="100" onchange="syncVol('out', this.value)">
@@ -195,26 +162,29 @@
 
 <script>
     const FIXED_ID = "obr-mezclador-central";
-    
     let peer;
     let audioCtx;
     let masterOut, masterAnalyser;
     let localMicGain, localMicAnalyser;
+    let broadcastNode; // Nodo para enviar audio a los detectores
     
-    // Estados Mute
-    let micMuted = false;
-    let outMuted = false;
-    let micLastVol = 100;
-    let outLastVol = 100;
+    let micMuted = false, outMuted = false;
+    let micLastVol = 100, outLastVol = 100;
 
     document.getElementById('btn-start').addEventListener('click', async () => {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         await audioCtx.resume();
         
+        // Master Out (Lo que escuchas tu)
         masterOut = audioCtx.createGain();
         masterAnalyser = audioCtx.createAnalyser(); masterAnalyser.fftSize = 64;
         masterOut.connect(masterAnalyser);
         masterOut.connect(audioCtx.destination);
+        
+        // Broadcast Node (Lo que envias a los detectores - Importante)
+        broadcastNode = audioCtx.createMediaStreamDestination();
+        masterOut.connect(broadcastNode); // Enviamos la mezcla maestra a los detectores
+
         animateMeter(masterAnalyser, 'meter-out');
 
         try {
@@ -229,7 +199,7 @@
             
             animateMeter(localMicAnalyser, 'meter-mic');
         } catch(e) {
-            console.error("Microfono master no disponible");
+            console.error("Mic Error", e);
             document.getElementById('mic-master').style.opacity = "0.5";
         }
         
@@ -242,20 +212,46 @@
     function initPeer() {
         peer = new Peer(FIXED_ID);
         
-        peer.on('open', id => { console.log("Mixer ID:", id); });
-        peer.on('error', err => {
-            if(err.type === 'unavailable-id') alert("⚠️ MEZCLADOR DUPLICADO: CIERRA OTRAS PESTAÑAS");
+        peer.on('open', id => {
+            console.log("ID SERVIDOR:", id);
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = ""; 
+            new QRCode(qrContainer, {
+                text: id,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
         });
 
-        // VALIDACIÓN DE CONEXIÓN REAL (DATA CHANNEL)
+        peer.on('error', err => {
+            if(err.type === 'unavailable-id') alert("⚠️ MEZCLADOR DUPLICADO");
+        });
+
+        // CONEXIÓN DE DATOS
         peer.on('connection', conn => {
-            conn.on('open', () => updateStatus(true));
+            conn.on('open', () => {
+                updateStatus(true);
+                // CRUCIAL: Enviar audio de vuelta al detector al conectar
+                // Esperamos un poco para asegurar estabilidad
+                setTimeout(() => {
+                    if(broadcastNode && broadcastNode.stream) {
+                        peer.call(conn.peer, broadcastNode.stream);
+                        console.log("Enviando audio a", conn.peer);
+                    }
+                }, 1000);
+            });
             conn.on('close', () => updateStatus(false));
             conn.on('error', () => updateStatus(false));
         });
 
+        // CONEXIÓN DE AUDIO (RECIBIR DEL DETECTOR)
         peer.on('call', call => {
-            call.answer(); 
+            // Respondemos con nuestro stream maestro para comunicación bidireccional
+            call.answer(broadcastNode.stream); 
+            
             call.on('stream', remoteStream => {
                 createChannelStrip(call.peer, remoteStream);
             });
@@ -293,7 +289,7 @@
         const masterStrip = document.querySelector('.master-out');
         container.insertBefore(div, masterStrip);
 
-        // Control de Canal
+        // Lógica Canal
         const numberInput = div.querySelector(`#val-${id}`);
         const sliderInput = div.querySelector(`#slider-${id}`);
         const muteBtn = div.querySelector(`#mute-${id}`);
@@ -319,7 +315,7 @@
                 muteBtn.classList.add('muted'); muteBtn.innerText = "MUTED";
                 sliderInput.disabled = true; numberInput.disabled = true;
             } else {
-                updateChGain(chLastVol, false); // Restaurar
+                updateChGain(chLastVol, false); 
                 muteBtn.classList.remove('muted'); muteBtn.innerText = "MUTE";
                 sliderInput.disabled = false; numberInput.disabled = false;
             }
@@ -392,23 +388,13 @@
     }
 
     function showQR() {
-        const qrDiv = document.getElementById("qrcode");
-        qrDiv.innerHTML = ""; // Limpiar anterior
-        new QRCode(qrDiv, {
-            text: FIXED_ID,
-            width: 200,
-            height: 200,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
         document.getElementById('qr-modal').style.display = 'flex';
     }
 
     function updateStatus(connected) {
         const el = document.getElementById('det-status');
         if(connected) {
-            el.innerText = "DETECTOR: CONECTADO";
+            el.innerText = "DETECTOR: ONLINE";
             el.className = "status-badge det-connected";
         } else {
             el.innerText = "DETECTOR: OFF";
