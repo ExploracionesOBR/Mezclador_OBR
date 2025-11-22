@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎙️ MICRO OBR (ANTI-ERROR)</title>
+    <title>🎙️ MICRO OBR (CAM MODE)</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
@@ -16,27 +16,50 @@
         }
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: -1; }
 
-        .logo-header { margin-bottom: 15px; text-align: center; }
-        .obr-logo { width: 60px; height: auto; margin-bottom: 5px; filter: drop-shadow(0 0 10px var(--accent)); display: block; margin: 0 auto; }
+        .logo-header { margin-bottom: 10px; text-align: center; }
+        .obr-logo { width: 50px; height: auto; display: block; margin: 0 auto 5px auto; filter: drop-shadow(0 0 10px var(--accent)); }
         h1 { margin: 0; color: var(--accent); font-size: 1.2rem; letter-spacing: 2px; }
 
-        .test-panel { background: #1a1a1a; border: 1px solid #444; border-radius: 12px; padding: 15px; width: 100%; max-width: 400px; margin-bottom: 20px; text-align: center; }
-        .vu-container { width: 100%; height: 15px; background: #333; border-radius: 5px; overflow: hidden; border: 1px solid #555; margin: 10px 0; position: relative; }
-        .vu-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--success), var(--danger)); transition: width 0.05s ease-out; }
-        
-        .btn-refresh { background: #333; color: #fff; border: 1px solid #666; padding: 8px 15px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; margin-bottom: 5px; }
-        .btn-monitor { background: #220022; color: #ff88ff; border: 1px solid #ff88ff; padding: 8px 15px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; margin-left: 5px; }
-        .btn-monitor.active { background: #ff88ff; color: #000; }
+        /* PANEL HARDWARE */
+        .hw-panel {
+            background: #151515; border: 1px solid #444; border-radius: 12px;
+            padding: 15px; width: 100%; max-width: 400px; margin-bottom: 20px;
+            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
 
+        /* MODO INDICATOR */
+        .mode-badge {
+            background: #004400; border: 1px solid #00ff41; color: #00ff41;
+            padding: 5px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
+            display: inline-block; margin-bottom: 10px;
+        }
+
+        /* VUMETRO */
+        .vu-container { width: 100%; height: 20px; background: #222; border-radius: 4px; overflow: hidden; border: 1px solid #555; margin: 10px 0; }
+        .vu-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--success), var(--danger)); transition: width 0.05s linear; }
+
+        .btn-row { display: flex; gap: 10px; justify-content: center; }
+        .btn-small { background: #333; color: #fff; border: 1px solid #666; padding: 8px 15px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; }
+
+        /* ESCANER */
         #qr-reader { width: 100%; border-radius: 8px; overflow: hidden; display: none; background: #000; margin-bottom: 15px; }
-        .btn-main { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: bold; border: none; border-radius: 50px; cursor: pointer; transition: all 0.3s; background: var(--accent); color: #000; box-shadow: 0 0 20px rgba(0, 210, 255, 0.2); display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        .btn-main {
+            width: 100%; padding: 18px; font-size: 1.1rem; font-weight: bold;
+            border: none; border-radius: 50px; cursor: pointer; transition: all 0.3s;
+            background: var(--accent); color: #000; box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
         .btn-main.live { background: var(--danger); color: white; box-shadow: 0 0 30px rgba(255, 0, 0, 0.6); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        #status { margin-top: 15px; font-size: 0.8rem; color: #666; font-family: monospace; text-align: center; word-break: break-word;}
-        #manual-area { display: none; width: 100%; max-width: 400px; display: flex; gap: 5px; margin-top: 10px; }
+        #status { margin-top: 15px; font-size: 0.8rem; color: #666; font-family: monospace; text-align: center; }
+        #manual-area { display: none; width: 100%; max-width: 400px; gap: 5px; margin-top: 10px; }
         .input-code { flex: 1; padding: 10px; background: #222; border: 1px solid #555; color: #fff; border-radius: 5px; text-align: center; }
         .btn-go { width: 50px; background: #333; color: #fff; border: 1px solid #fff; border-radius: 5px; }
+
+        /* VIDEO OCULTO (El truco) */
+        #dummy-video { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
         audio { display: none; }
     </style>
 </head>
@@ -47,14 +70,20 @@
         <h1>MICROFONO OBR</h1>
     </div>
 
-    <div class="test-panel">
-        <div style="font-size:0.7rem; color:#888; margin-bottom:5px;">NIVEL DE AUDIO (RAW)</div>
+    <video id="dummy-video" autoplay playsinline muted></video>
+
+    <div class="hw-panel">
+        <div class="mode-badge">MODO: GRABACIÓN VIDEO (FORZADO)</div>
+        
         <div class="vu-container"><div id="vu-bar" class="vu-bar"></div></div>
-        <div style="display:flex; justify-content:center; gap:10px;">
-            <button class="btn-refresh" onclick="initAudioSystem()">🔄 RECARGAR</button>
-            <button id="btn-mon" class="btn-monitor" onclick="toggleMonitor()">🎧 MONITOR</button>
+        <div style="font-size:0.65rem; color:#888; margin-bottom:10px;">
+            Golpea el micro externo. Si la barra se mueve, está listo.
         </div>
-        <p style="font-size:0.65rem; color:#aaa; margin-top:5px;">Si conectas un micro, dale a Recargar.</p>
+
+        <div class="btn-row">
+            <button class="btn-small" onclick="initCamcorderMode()">🔄 REINICIAR DRIVER</button>
+            <button class="btn-small" onclick="toggleMonitor()">🎧 MONITOR</button>
+        </div>
     </div>
 
     <div id="qr-reader"></div>
@@ -63,26 +92,27 @@
         <button id="btn-action" class="btn-main">
             <span>📡</span> <span id="btn-text">ESCANEAR ENLACE</span>
         </button>
-        <div id="manual-area" style="display:none;">
+
+        <div id="manual-area">
             <input type="text" id="manual-id" class="input-code" placeholder="ID MANUAL">
             <button class="btn-go" onclick="manualConnect()">IR</button>
         </div>
     </div>
 
-    <div id="status">Sistema listo.</div>
+    <div id="status">Cargando modo video...</div>
     <audio id="fake-audio" loop playsinline src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjIwLjEwMAAAAAAAAAAAAAAA//oeGQAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"></audio>
 
 <script>
-    // CONFIGURACIÓN DE RED ROBUSTA (STUN GLOBAL)
+    // RED: TURN SERVERS
     const peerConfig = {
-        debug: 2,
         config: {
             iceServers: [
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
+                { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+                { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+                { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
             ],
-            sdpSemantics: 'unified-plan' // CRITICO PARA IPHONE
+            sdpSemantics: 'unified-plan'
         }
     };
 
@@ -91,50 +121,70 @@
     const status = document.getElementById('status');
     const vuBar = document.getElementById('vu-bar');
     const qrContainer = document.getElementById('qr-reader');
+    const dummyVideo = document.getElementById('dummy-video');
     
-    let peer, activeStream, audioContext, analyser, microphone, jsNode, monitorNode;
+    let peer, globalStream, audioContext, analyser, microphone, jsNode, monitorNode;
     let currentCall, html5QrCode;
     let isScanning = false, isConnected = false, isMonitoring = false;
-    let retryCount = 0; // Contador de reintentos
 
-    // --- INICIO PEER ---
+    // --- INICIO ---
     const myId = "obr-mic-" + Math.floor(Math.random()*10000);
     peer = new Peer(myId, peerConfig);
     
-    peer.on('open', id => console.log("ID Local:", id));
-    peer.on('error', err => { status.innerText = "Error Sistema: " + err.type; });
+    peer.on('open', id => console.log("ID:", id));
+    peer.on('error', err => { status.innerText = "Error Red: " + err.type; });
 
-    // INICIAR AUDIO RAW AUTOMATICAMENTE
-    initAudioSystem();
+    // INICIAR EN MODO "CAMCORDER"
+    initCamcorderMode();
 
-    async function initAudioSystem() {
-        if(activeStream) activeStream.getTracks().forEach(t => t.stop());
+    async function initCamcorderMode() {
+        // Limpieza previa
+        if(globalStream) globalStream.getTracks().forEach(t => t.stop());
         if(audioContext) audioContext.close();
 
         try {
-            // PEDIR AUDIO SIN PROCESAMIENTO (Para que entre el externo)
+            status.innerText = "Activando modo videocámara...";
+            
+            // PEDIMOS VIDEO Y AUDIO
+            // Esto fuerza al OS a usar perfiles de grabación de medios (Micro Externo habilitado)
             const constraints = {
+                video: { 
+                    facingMode: "environment",
+                    width: { ideal: 640 }, // Resolución baja para ahorrar batería
+                    height: { ideal: 480 }
+                },
                 audio: {
-                    echoCancellation: false, noiseSuppression: false, autoGainControl: false,
-                    googEchoCancellation: false, googAutoGainControl: false, googNoiseSuppression: false, googHighpassFilter: false
+                    echoCancellation: false, // Vital: Apagar cancelación de eco
+                    noiseSuppression: false,
+                    autoGainControl: false
                 }
             };
-            activeStream = await navigator.mediaDevices.getUserMedia(constraints);
-            startVisualizer(activeStream);
-            status.innerText = "Microfono Activo (Modo RAW).";
+
+            globalStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Conectamos el stream al video invisible (para engañar al OS)
+            dummyVideo.srcObject = globalStream;
+            dummyVideo.play().catch(e=>{});
+
+            // Iniciamos visualizador solo con la pista de audio
+            startVisualizer(globalStream);
+            status.innerText = "Modo Externo Activo. (Video Oculto)";
+
         } catch (e) {
-            status.innerText = "Error Micro: " + e.message;
-            alert("Permiso de micrófono denegado o error de hardware.");
+            status.innerText = "Error: " + e.message;
+            alert("Error: No se pudo activar la cámara/micrófono. Revisa permisos.");
         }
     }
 
     function startVisualizer(stream) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
+        // Extraer solo audio del stream combinado
         microphone = audioContext.createMediaStreamSource(stream);
         jsNode = audioContext.createScriptProcessor(2048, 1, 1);
         
-        monitorNode = audioContext.createGain(); monitorNode.gain.value = 0;
+        monitorNode = audioContext.createGain();
+        monitorNode.gain.value = 0;
 
         analyser.smoothingTimeConstant = 0.3; analyser.fftSize = 1024;
 
@@ -153,9 +203,8 @@
 
     function toggleMonitor() {
         isMonitoring = !isMonitoring;
-        const btnMon = document.getElementById('btn-mon');
-        if(isMonitoring) { monitorNode.gain.value = 1; btnMon.classList.add('active'); alert("🔊 MONITOR ON: Usa audífonos."); } 
-        else { monitorNode.gain.value = 0; btnMon.classList.remove('active'); }
+        if(isMonitoring) { monitorNode.gain.value = 1; alert("🔊 MONITOR ON"); } 
+        else { monitorNode.gain.value = 0; }
     }
 
     // --- CONEXIÓN ---
@@ -172,7 +221,7 @@
             (decodedText) => { stopScanner(); connectToMixer(decodedText); },
             (err) => {}
         ).catch(err => {
-            alert("Cámara no disponible. Usa ID manual.");
+            alert("Cámara ocupada por el modo audio. Usa ID manual.");
             stopScanner(); document.getElementById('manual-area').style.display = 'flex';
         });
     }
@@ -188,87 +237,39 @@
         if(id) connectToMixer(id);
     }
 
-    // === CORAZÓN DE LA CONEXIÓN CON REINTENTOS ===
     function connectToMixer(mixerId) {
-        status.innerText = `Intentando conectar (Intento ${retryCount + 1})...`;
+        status.innerText = "Enviando señal...";
         status.style.color = "yellow";
 
-        // Asegurar audio en background
         document.getElementById('fake-audio').play().catch(e=>{});
         if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(e=>{});
 
-        if(!activeStream) { alert("Sin audio. Recarga la página."); return; }
+        // TRUCO FINAL: Crear un nuevo stream SOLO DE AUDIO a partir del stream de video
+        // Esto es para no mandar video pesado por la red, solo el audio limpio
+        const audioTrack = globalStream.getAudioTracks()[0];
+        const transmissionStream = new MediaStream([audioTrack]);
+
+        currentCall = peer.call(mixerId, transmissionStream);
         
-        // Cerrar llamada previa si existe
-        if(currentCall) currentCall.close();
+        setConnectedState(true);
+        status.innerText = "🔴 EN AIRE";
 
-        try {
-            // Crear llamada
-            currentCall = peer.call(mixerId, activeStream);
-            
-            // Esperar error inmediato
-            currentCall.on('error', (err) => {
-                console.error("Error llamada:", err);
-                handleConnectionError(mixerId);
-            });
-
-            // PeerJS a veces no lanza 'error' sino que cierra inmediatamente si falla la negociación
-            currentCall.on('close', () => {
-                if(isConnected) disconnect(); // Cierre normal
-                else handleConnectionError(mixerId); // Cierre prematuro (fallo)
-            });
-
-            // Asumimos éxito temporalmente para cambiar UI
-            setConnectedState(true);
-            
-            // Verificación de seguridad: Si en 5 segundos no hay confirmación (opcional), podríamos reintentar
-            // Pero por ahora confiamos en el evento 'error' o 'close'
-
-        } catch(e) {
-            handleConnectionError(mixerId);
-        }
-    }
-
-    function handleConnectionError(mixerId) {
-        setConnectedState(false);
-        
-        if(retryCount < 3) {
-            retryCount++;
-            status.innerText = `Negociación fallida. Reintentando (${retryCount}/3)...`;
-            status.style.color = "orange";
-            
-            // Esperar 1.5 segundos y reintentar
-            setTimeout(() => {
-                connectToMixer(mixerId);
-            }, 1500);
-        } else {
-            retryCount = 0;
-            status.innerText = "❌ ERROR FATAL: Red incompatible.";
-            status.style.color = "red";
-            alert("No se pudo establecer conexión. Posibles causas:\n1. Bloqueo de Firewall/Datos móviles.\n2. El Mezclador se cerró.\n\nIntenta recargar ambas páginas.");
-        }
+        currentCall.on('close', () => disconnect());
+        currentCall.on('error', (e) => { alert("Error: "+e); disconnect(); });
     }
 
     function setConnectedState(connected) {
         isConnected = connected;
         if(connected) {
-            btn.classList.add('live');
-            btn.innerHTML = "🛑 DETENER";
-            status.innerText = "🔴 EN AIRE - CONECTADO";
-            status.style.color = "#ff0000";
+            btn.classList.add('live'); btn.innerHTML = "🛑 DETENER"; status.style.color = "#ff0000";
             document.getElementById('manual-area').style.display = 'none';
         } else {
-            btn.classList.remove('live');
-            btn.innerHTML = "<span>📡</span> <span id='btn-text'>ESCANEAR ENLACE</span>";
-            if(retryCount === 0) {
-                status.innerText = "Listo para conectar";
-                status.style.color = "#aaa";
-            }
+            btn.classList.remove('live'); btn.innerHTML = "<span>📡</span> <span id='btn-text'>ESCANEAR ENLACE</span>";
+            status.innerText = "Listo"; status.style.color = "#aaa";
         }
     }
 
     function disconnect() {
-        retryCount = 0;
         if(currentCall) currentCall.close();
         setConnectedState(false);
     }
