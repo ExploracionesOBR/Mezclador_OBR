@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎛️ MEZCLADOR OBR | BIG</title>
+    <title>🎛️ MEZCLADOR OBR | BIG TACTICAL</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -32,11 +32,11 @@
         /* HEADER */
         header { 
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 10px; padding: 0 10px; border-bottom: 1px solid var(--accent); 
-            background: rgba(0,0,0,0.8); border-radius: 6px; flex-shrink: 0; height: 50px; 
+            margin-bottom: 10px; padding: 0 10px; border-bottom: 2px solid var(--accent); 
+            background: rgba(0,0,0,0.8); border-radius: 6px; flex-shrink: 0; height: 55px; 
         }
         .logo-header { height: 30px; filter: drop-shadow(0 0 5px var(--accent)); }
-        .header-center { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+        .header-center { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
         .header-title { font-family: 'Orbitron'; font-size: 0.8rem; color: var(--accent); font-weight: 900; letter-spacing: 1px; }
 
         /* ESTADO */
@@ -61,49 +61,49 @@
             font-size: 0.7rem; transition: 0.2s;
         }
 
-        /* CONSOLA (ALINEADA ARRIBA) */
+        /* CONSOLA - ALINEADA ARRIBA (BIG) */
         #console-container { 
-            display: flex; gap: 5px; overflow-x: auto; overflow-y: hidden; flex-grow: 1; 
+            display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; flex-grow: 1; 
             padding: 5px 0; 
-            /* ALINEACION SUPERIOR */
-            align-items: flex-start; 
+            align-items: flex-start; /* PEGAR ARRIBA */
             scrollbar-width: none;
         }
         #console-container::-webkit-scrollbar { display: none; }
         
-        /* CHANNEL STRIP (90px ANCHO - DOBLE TAMAÑO) */
+        /* CHANNEL STRIP (90px ANCHO) */
         .channel-strip { 
-            background: var(--panel-bg); border: 1px solid #333; border-radius: 6px; padding: 8px 4px; 
-            display: flex; flex-direction: column; align-items: center; 
+            background: var(--panel-bg); border: 1px solid #333; border-radius: 6px; padding: 8px 5px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
             width: 90px; min-width: 90px; flex-shrink: 0; 
-            height: auto; 
+            height: auto; /* Ajuste al contenido */
             position: relative; gap: 5px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
         }
+        .channel-strip.offline { opacity: 0.5; filter: grayscale(1); border: 1px dashed #444; }
 
         .strip-title { 
             font-size: 0.6rem; font-weight: bold; color: #aaa; 
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center;
-            border-bottom: 1px solid #333; padding-bottom: 4px;
+            border-bottom: 1px solid #333; padding-bottom: 4px; letter-spacing: 1px;
         }
         
         .vol-display {
             width: 100%; text-align: center; background: transparent; border: none;
-            color: var(--accent); font-family: 'Orbitron'; font-size: 0.8rem; font-weight: bold;
+            color: var(--accent); font-family: 'Orbitron'; font-size: 0.9rem; font-weight: bold;
             margin: 0; padding: 0; pointer-events: auto; letter-spacing: -0.5px;
         }
         .vol-display:focus { outline: none; color: #fff; background: #222; }
 
-        /* AREA FADER (ALTURA 100PX - DOBLE) */
+        /* AREA FADER + VU METER (ALTURA 120PX) */
         .fader-group { 
-            display: flex; flex-direction: row; gap: 4px; width: 100%; 
+            display: flex; flex-direction: row; gap: 8px; width: 100%; 
             justify-content: center; align-items: stretch;
-            padding: 4px; background: rgba(0,0,0,0.4); border-radius: 4px; margin: 4px 0;
-            height: 100px; min-height: 100px; /* MAS ALTO PARA CONTROL */
+            padding: 5px; background: rgba(0,0,0,0.4); border-radius: 4px; margin: 0;
+            height: 120px; min-height: 120px; max-height: 120px; /* ALTURA GRANDE */
         }
         
         .vu-meter-wrap {
-            width: 8px; height: 100%; background: #0a0a0a; border: 0px solid #444;
+            width: 10px; height: 100%; background: #0a0a0a; border: 0px solid #444;
             border-radius: 2px; position: relative; overflow: hidden;
         }
         .vu-bg {
@@ -114,31 +114,31 @@
             position: absolute; bottom: 0; left: 0; width: 100%; 
             background: linear-gradient(to top, #00ff00 0%, #00ff00 60%, #ffff00 60%, #ffff00 85%, #ff0000 85%, #ff0000 100%);
             height: 0%; transition: height 0.05s linear;
+            box-shadow: 0 0 5px rgba(0,255,0,0.5);
         }
 
         input[type=range][orient=vertical] { 
             writing-mode: bt-lr; -webkit-appearance: slider-vertical; 
-            width: 40px; height: 100%; margin: 0; cursor: ns-resize; accent-color: var(--accent); 
+            width: 45px; height: 100%; margin: 0; cursor: ns-resize; accent-color: var(--accent); 
             touch-action: none; 
         }
         
-        .btn-mute { width: 100%; padding: 6px 0; background: #333; border: 1px solid #555; color: #888; font-size: 0.6rem; border-radius: 3px; font-weight: bold; text-align: center; letter-spacing: 1px; }
+        .btn-mute { width: 100%; padding: 8px 0; background: #333; border: 1px solid #555; color: #888; font-size: 0.65rem; border-radius: 4px; font-weight: bold; text-align: center; letter-spacing: 1px;}
         .btn-mute.muted { background: #500; border-color: #f00; color: #fff; }
         .btn-del { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; background: #900; color: white; border-radius: 50%; font-size: 0.6rem; display: flex; justify-content: center; align-items: center; z-index: 10; border: 1px solid red; cursor: pointer; }
 
         .master-mic { border: 1px solid #ffae00; order: 1; }
         .master-mic .strip-title { color: #ffae00; }
-        /* Master Out un poco mas grande */
         .master-out { border: 1px solid var(--accent); order: 1000; margin-left: auto; min-width: 95px; width: 95px; }
         .master-out .strip-title { color: var(--accent); }
         
-        #routing-display { font-size: 0.5rem; text-align: center; padding: 2px; width: 100%; font-weight: bold; border-radius: 2px; }
+        #routing-display { font-size: 0.5rem; text-align: center; padding: 2px; width: 100%; font-weight: bold; border-radius: 2px; margin-bottom: 4px;}
         .route-local { color: #888; border: 1px solid #333; }
-        .route-remote { color: #000; background: #00ff41; border: 1px solid #00ff41; }
+        .route-remote { color: #000; background: #00ff41; border: 1px solid #00ff41; box-shadow: 0 0 5px #00ff41; }
 
         #overlay { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; background-image: url('./fondo_pantalla.jpg'); background-size: cover; }
-        .overlay-content { background: rgba(0,0,0,0.95); padding: 25px; border-radius: 15px; border: 1px solid var(--accent); text-align: center; width: 85%; max-width: 350px; }
-        #btn-start { margin-top: 20px; padding: 12px 0; width: 100%; font-size: 1rem; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 50px; font-family: 'Orbitron'; cursor: pointer; }
+        .overlay-content { background: rgba(0,0,0,0.95); padding: 30px; border-radius: 15px; border: 1px solid var(--accent); text-align: center; width: 85%; max-width: 350px; }
+        #btn-start { margin-top: 20px; padding: 15px 0; width: 100%; font-size: 1.1rem; background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 50px; font-family: 'Orbitron'; cursor: pointer; }
         
         #qr-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.3s; }
         #qr-modal.active { opacity: 1; }
@@ -155,14 +155,14 @@
     <div id="overlay">
         <div class="overlay-content">
             <img src="./obr-logo.png" style="width: 100px; margin: 0 auto 15px auto; filter: drop-shadow(0 0 10px #00d2ff);" onerror="this.style.display='none'">
-            <h1 style="font-family: 'Orbitron'; color:white; font-size: 1.1rem;">MEZCLADOR DE AUDIO</h1>
+            <h1 style="font-family: 'Orbitron'; color:white; font-size: 1.2rem;">MEZCLADOR DE AUDIO</h1>
             <div style="color:#888; font-size:0.7rem; letter-spacing:2px;">EXPLORACIONES OBR</div>
             <button id="btn-start">INICIAR SISTEMA</button>
         </div>
     </div>
 
     <div id="qr-modal" onclick="closeQR()">
-        <h2 style="color:var(--accent); font-family:'Orbitron'; font-size:1rem; margin-bottom:10px;">VINCULAR DISPOSITIVO</h2>
+        <h2 style="color:var(--accent); font-family:'Orbitron'; font-size:1rem; margin-bottom:10px;">VINCULAR DETECTOR</h2>
         <div id="qrcode"></div>
         <p style="color:#aaa; font-family:monospace; font-size:0.7rem;">ID: obr-mezclador-central</p>
         <p style="color:#666; font-size:0.6rem; margin-top:20px;">TOCA PARA CERRAR</p>
@@ -174,7 +174,7 @@
             <div class="header-title">EXPLORACIONES OBR</div>
         </div>
         <div id="connection-status" class="status-indicator disconnected">
-            <div class="dot"></div> <span id="status-text">ESPERANDO</span>
+            <div class="dot"></div> <span id="status-text">ESPERANDO...</span>
         </div>
         <button class="btn-link" onclick="showQR()">📲 ID</button>
     </header>
@@ -196,6 +196,8 @@
             </div>
             <button class="btn-mute" id="mute-mic" onclick="toggleMute('mic')">MUTE</button>
         </div>
+
+        <!-- LOS CANALES REMOTOS SE CREAN AQUI -->
 
         <!-- 2. SALIDA MASTER -->
         <div class="channel-strip master-out">
@@ -262,9 +264,10 @@
             localMicNode = audioCtx.createGain(); 
             const localAnal = audioCtx.createAnalyser(); localAnal.fftSize = 256; 
             
-            source.connect(localAnal); // Pre-fader meter
-            source.connect(localMicNode);
-            localMicNode.connect(masterOutNode);
+            // POST-FADER ROUTING
+            source.connect(localMicNode); 
+            localMicNode.connect(localAnal); // Meter
+            localMicNode.connect(masterOutNode); // Master
             
             animateMeter(localAnal, 'meter-mic'); 
         } catch(e) {
@@ -333,7 +336,6 @@
     function updateStatusUI() {
         const el = document.getElementById('connection-status');
         const txt = document.getElementById('status-text');
-        const icon = el.querySelector('.dot');
         
         if(isDetectorConnected) {
             el.className = "status-indicator connected";
@@ -503,6 +505,7 @@
     function deletePeer(id) { savedPeers = savedPeers.filter(p => p !== id); localStorage.setItem('obr_peers', JSON.stringify(savedPeers)); const el = document.getElementById('ch-' + id); if(el) el.remove(); }
     function markChannelOffline(id) { const el = document.getElementById('ch-' + id); if(el) { el.style.opacity = "0.5"; el.classList.add('offline'); el.querySelector('.strip-title').innerText = `⚠️ ${id.substring(0,4)}...`; } }
 
+    // MOTOR VU TIME DOMAIN (AMPLITUD REAL)
     function animateMeter(analyser, elemId) {
         const timeData = new Uint8Array(256); 
         function loop() {
