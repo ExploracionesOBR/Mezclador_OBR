@@ -4,185 +4,479 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#000000">
-    <title>EXPLORACIONES OBR</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>OBR LINK v3.2 CONTEXT</title>
     
+    <!-- PeerJS & QR & Tailwind -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Creepster&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --primary: #00d2ff;
-            --mic-color: #ff3333;
-            --detect-color: #00ff41;
-            --glass-bg: rgba(10, 10, 10, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.15);
+            --primary: #00f3ff;
+            --secondary: #ff0055;
+            --glass: rgba(10, 15, 20, 0.85);
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            width: 100vw;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            
-            /* FONDO DE PANTALLA CONFIGURADO */
-            background: url('fondo_pantalla.jpg') no-repeat center center fixed;
+            background-color: #000;
+            background-image: url('fondo_pantalla.jpg');
             background-size: cover;
-            
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        /* Sombra oscura sobre la imagen para que se lea el texto */
-        .overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(3px);
-            z-index: 0;
-        }
-
-        .app-container {
-            position: relative;
-            z-index: 1;
-            width: 90%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* HEADER CON LOGO */
-        .header {
-            text-align: center;
-            margin-bottom: 10px;
-            animation: fadeDown 1s ease;
-        }
-
-        .logo-img {
-            width: 120px; /* Tamaño del Logo */
-            height: auto;
-            filter: drop-shadow(0 0 20px rgba(0, 210, 255, 0.4));
-            margin-bottom: 15px;
-        }
-
-        h1 {
-            color: #fff;
+            background-position: center;
+            color: var(--primary);
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.8rem;
-            margin: 0;
-            text-shadow: 0 0 10px var(--primary);
-            letter-spacing: 2px;
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            user-select: none; -webkit-touch-callout: none;
         }
 
-        .subtitle {
-            color: #aaa;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            margin-top: 5px;
+        body::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: -1; }
+
+        .screen {
+            position: fixed; inset: 0; z-index: 10;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.5s ease; padding: 20px;
         }
+        .screen.active { display: flex; opacity: 1; z-index: 20; }
 
-        /* TARJETAS DE MENÚ */
-        .menu-btn {
-            display: flex;
-            align-items: center;
-            padding: 20px;
-            text-decoration: none;
-            border-radius: 15px;
-            
-            /* Efecto Cristal */
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            opacity: 0; /* Para la animación */
-            animation: fadeUp 0.8s ease forwards;
+        .logo-main { width: 100px; filter: drop-shadow(0 0 15px var(--primary)); margin-bottom: 20px; }
+        .pulse-logo { animation: pulseLogo 2s infinite; }
+        @keyframes pulseLogo { 0% { transform: scale(1); filter: drop-shadow(0 0 10px var(--primary)); } 50% { transform: scale(1.05); filter: drop-shadow(0 0 20px var(--primary)); } 100% { transform: scale(1); filter: drop-shadow(0 0 10px var(--primary)); } }
+
+        .btn-action {
+            background: rgba(0, 243, 255, 0.1); border: 1px solid var(--primary); color: var(--primary);
+            padding: 15px 30px; font-family: 'Orbitron'; font-weight: bold; letter-spacing: 2px;
+            cursor: pointer; backdrop-filter: blur(5px); margin-top: 20px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); transition: 0.3s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
         }
+        .btn-action:active { transform: scale(0.95); background: var(--primary); color: #000; }
 
-        /* Colores específicos por borde */
-        .btn-mezclador { border-left: 5px solid var(--primary); animation-delay: 0.2s; }
-        .btn-micro { border-left: 5px solid var(--mic-color); animation-delay: 0.3s; }
-        .btn-detector { border-left: 5px solid var(--detect-color); animation-delay: 0.4s; }
-
-        /* Hover Efectos */
-        .menu-btn:active { transform: scale(0.97); background: rgba(50,50,50,0.9); }
-
-        .icon {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            margin-right: 20px;
-            border-radius: 12px;
-            background: rgba(0,0,0,0.4);
+        #scan-video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: -1; opacity: 0.6; }
+        .scan-frame {
+            width: 250px; height: 250px; border: 2px solid var(--primary);
+            box-shadow: 0 0 20px var(--primary), inset 0 0 20px var(--primary);
+            position: relative;
         }
-
-        /* Colores de iconos */
-        .btn-mezclador .icon { color: var(--primary); box-shadow: 0 0 15px rgba(0, 210, 255, 0.2); }
-        .btn-micro .icon { color: var(--mic-color); box-shadow: 0 0 15px rgba(255, 51, 51, 0.2); }
-        .btn-detector .icon { color: var(--detect-color); box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
-
-        .text-group { display: flex; flex-direction: column; }
-        .btn-title { color: white; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: bold; margin-bottom: 3px; }
-        .btn-desc { color: #bbb; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; }
-
-        /* FOOTER */
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #555;
-            font-size: 0.7rem;
-            font-family: monospace;
+        .scan-line {
+            width: 100%; height: 2px; background: var(--secondary);
+            position: absolute; top: 0; animation: scanMove 2s infinite linear;
+            box-shadow: 0 0 10px var(--secondary);
         }
+        @keyframes scanMove { 0% { top: 0; opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
 
-        /* ANIMACIONES */
-        @keyframes fadeDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .menu-card {
+            width: 100%; max-width: 320px; background: rgba(15, 20, 25, 0.9);
+            border: 1px solid #333; border-left: 4px solid var(--primary);
+            padding: 20px; margin: 10px 0; cursor: pointer; text-align: left;
+            display: flex; align-items: center; gap: 15px; transition: 0.3s;
+        }
+        .menu-card:active { transform: scale(0.98); background: rgba(0, 243, 255, 0.2); }
+        .menu-card.red { border-left-color: var(--secondary); }
+        .menu-card.red:active { background: rgba(255, 0, 85, 0.2); }
+        .menu-icon { font-size: 1.8rem; width: 40px; text-align: center; }
+
+        .active-status-bar {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+        }
+        .rec-dot { width: 12px; height: 12px; background: var(--secondary); border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+        
+        #spirit-text {
+            font-family: 'Share Tech Mono'; font-size: 1.2rem; color: var(--secondary);
+            text-align: center; margin-top: 20px; min-height: 80px; text-shadow: 0 0 5px var(--secondary);
+            white-space: pre-wrap; padding: 0 20px;
+        }
+        #btn-invoke {
+            width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--secondary);
+            background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; color: var(--secondary); box-shadow: 0 0 20px rgba(255,0,85,0.3);
+            transition: 0.3s; margin: 0 auto;
+        }
+        #btn-invoke.listening { border-color: #00ff41; color: #00ff41; box-shadow: 0 0 30px #00ff41; transform: scale(1.1); }
+
+        .vu-container {
+            position: absolute; bottom: 80px; left: 20px; right: 20px; height: 60px;
+            display: flex; align-items: flex-end; gap: 3px; opacity: 0.8;
+        }
+        .vu-bar { flex: 1; background: var(--primary); min-height: 2px; transition: height 0.05s; }
+
+        #keep-alive-video { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
 
     </style>
 </head>
 <body>
 
-    <div class="overlay"></div>
-
-    <div class="app-container">
-        
-        <div class="header">
-            <img src="obr-logo.png" alt="Logo OBR" class="logo-img">
-            <h1>EXPLORACIONES OBR</h1>
-            <div class="subtitle">PANEL DE CONTROL</div>
-        </div>
-
-        <a href="Mezclador.html" class="menu-btn btn-mezclador">
-            <div class="icon"><i class="fas fa-sliders-h"></i></div>
-            <div class="text-group">
-                <span class="btn-title">MEZCLADOR</span>
-                <span class="btn-desc">BASE CENTRAL | CONTROL TOTAL</span>
-            </div>
-        </a>
-
-        <a href="microfonos.html" class="menu-btn btn-micro">
-            <div class="icon"><i class="fas fa-microphone-lines"></i></div>
-            <div class="text-group">
-                <span class="btn-title">MICRÓFONO</span>
-                <span class="btn-desc">ENLACE REMOTO | ESCÁNER QR</span>
-            </div>
-        </a>
-
-        <div class="footer">
-            © EXPLORACIONES OBR<br>ACCESO AUTORIZADO ÚNICAMENTE
-        </div>
-
+    <!-- 1. CARGA -->
+    <div id="screen-load" class="screen active">
+        <img src="obr-logo.png" class="logo-main pulse-logo">
+        <h1 class="text-2xl font-bold text-white tracking-[5px] mb-1">OBR LINK</h1>
+        <p class="text-xs text-gray-400 font-mono mb-8">SISTEMA DE ENLACE REMOTO</p>
+        <button class="btn-action" onclick="initSystem()">INGRESAR</button>
+        <p class="absolute bottom-5 text-[10px] text-gray-600">v3.2 CONTEXT</p>
     </div>
 
+    <!-- 2. ESCANER -->
+    <div id="screen-scan" class="screen">
+        <video id="scan-video" playsinline muted></video>
+        <div class="scan-frame"><div class="scan-line"></div></div>
+        <div class="absolute top-10 bg-black/60 px-4 py-2 rounded border border-cyan-500 text-cyan-400 text-xs font-bold">
+            VINCULAR CON DETECTOR
+        </div>
+        <p class="absolute bottom-20 text-white text-xs text-center w-80 opacity-80 bg-black/50 p-2">
+            Apunta al código QR del Detector OBR para establecer conexión segura.
+        </p>
+        <button onclick="location.reload()" class="absolute bottom-5 text-red-500 text-xs font-bold border border-red-900 px-4 py-2 bg-black">CANCELAR</button>
+    </div>
+
+    <!-- 3. MENU -->
+    <div id="screen-menu" class="screen">
+        <div class="text-center mb-6">
+            <img src="obr-logo.png" class="w-16 mx-auto mb-2 opacity-80">
+            <div class="text-xs text-green-400 font-mono border border-green-900 bg-green-900/20 px-2 py-1 inline-block rounded">
+                <i class="fas fa-link"></i> CONECTADO
+            </div>
+        </div>
+
+        <div class="menu-card" onclick="selectMode('mic')">
+            <div class="menu-icon text-cyan-400"><i class="fas fa-microphone-lines"></i></div>
+            <div>
+                <div class="font-bold text-white text-sm">MICRÓFONO PRO</div>
+                <div class="text-[10px] text-gray-400 font-mono">Audio Hi-Fi | Baja Latencia</div>
+            </div>
+        </div>
+
+        <div class="menu-card red" onclick="selectMode('spirit')">
+            <div class="menu-icon text-red-500"><i class="fas fa-ghost"></i></div>
+            <div>
+                <div class="font-bold text-white text-sm">SPIRIT BOX AI</div>
+                <div class="text-[10px] text-gray-400 font-mono">Contexto Visual + Voz Real</div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-5 text-[10px] text-gray-500 text-center w-full">
+            SESIÓN SEGURA ID: <span id="display-host-id" class="text-gray-300">---</span>
+        </div>
+    </div>
+
+    <!-- 4. ACTIVO -->
+    <div id="screen-active" class="screen">
+        <div class="active-status-bar">
+            <div class="flex items-center gap-2">
+                <div class="rec-dot"></div>
+                <span class="text-white font-bold text-xs tracking-widest">TRANSMITIENDO</span>
+            </div>
+            <div id="mode-indicator" class="text-[10px] text-gray-400 font-mono border border-gray-700 px-2 py-0.5 rounded">MIC</div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center items-center w-full">
+            <!-- UI MIC -->
+            <div id="ui-mic" class="hidden text-center">
+                <div class="w-32 h-32 rounded-full border-2 border-cyan-500 flex items-center justify-center bg-cyan-500/10 shadow-[0_0_30px_rgba(0,243,255,0.2)] animate-pulse">
+                    <i class="fas fa-microphone text-5xl text-cyan-400"></i>
+                </div>
+                <p class="mt-6 text-cyan-300 text-xs font-mono tracking-widest">ENLACE DE AUDIO ACTIVO</p>
+            </div>
+
+            <!-- UI SPIRIT BOX -->
+            <div id="ui-spirit" class="hidden text-center w-full">
+                <button id="btn-invoke" onclick="startEVP()">
+                    <i id="invoke-icon" class="fas fa-fingerprint"></i>
+                </button>
+                <p id="invoke-status" class="mt-4 text-gray-500 text-xs font-mono">MANTÉN PARA PREGUNTAR</p>
+                <div id="spirit-text">...</div>
+            </div>
+        </div>
+
+        <video id="keep-alive-video" playsinline autoplay muted loop></video>
+        <div class="vu-container" id="vu-visualizer"></div>
+
+        <button onclick="logout()" class="w-full py-3 bg-red-900/30 border border-red-800 text-red-400 text-xs font-bold rounded hover:bg-red-900/50 transition">
+            DESVINCULAR / SALIR
+        </button>
+    </div>
+
+<script>
+    // CONFIG
+    const GEMINI_KEY = "AIzaSyDbFXVNT5jyZZclbOexvgkB_FK8ijC5qU4";
+    const SESSION_TIMEOUT_MS = 10 * 60 * 60 * 1000; // 10 Horas
+
+    // STATE
+    let currentHostId = null;
+    let appMode = '';
+    let localStream;
+    let peer, conn;
+    let audioCtx, micSource, destNode, analyser;
+    let recognition;
+    let isProcessing = false;
+    let sessionTimer;
+
+    // DOM
+    const screens = {
+        load: document.getElementById('screen-load'),
+        scan: document.getElementById('screen-scan'),
+        menu: document.getElementById('screen-menu'),
+        active: document.getElementById('screen-active')
+    };
+
+    // --- 1. SYSTEM INIT ---
+    async function initSystem() {
+        try {
+            // Solicitar permisos completos
+            localStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } 
+            });
+            
+            // Keep Alive Video
+            const kv = document.getElementById('keep-alive-video');
+            kv.srcObject = localStream;
+            kv.play();
+
+            showScreen('scan');
+            startQRScanner();
+
+        } catch(e) {
+            alert("Permisos requeridos: " + e.message);
+        }
+    }
+
+    // --- 2. QR SCANNER ---
+    let scanReq;
+    function startQRScanner() {
+        const v = document.getElementById('scan-video');
+        v.srcObject = localStream;
+        v.play();
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function scan() {
+            if(v.readyState === v.HAVE_ENOUGH_DATA) {
+                canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+                ctx.drawImage(v, 0, 0);
+                const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+                const code = jsQR(img.data, img.width, img.height);
+                
+                if(code && code.data) {
+                    cancelAnimationFrame(scanReq);
+                    linkToDetector(code.data);
+                    return;
+                }
+            }
+            if(screens.scan.classList.contains('active')) scanReq = requestAnimationFrame(scan);
+        }
+        scan();
+    }
+
+    function linkToDetector(id) {
+        currentHostId = id;
+        document.getElementById('display-host-id').innerText = id;
+        sessionTimer = setTimeout(logout, SESSION_TIMEOUT_MS);
+        
+        peer = new Peer();
+        peer.on('open', myId => {
+            console.log("Client ID:", myId);
+            showScreen('menu'); 
+        });
+        peer.on('error', err => { alert("Error Conexión: " + err.type); logout(); });
+    }
+
+    // --- 3. MODE SELECTION & CONNECTION ---
+    function selectMode(mode) {
+        appMode = mode;
+        
+        // UI Setup
+        document.getElementById('mode-indicator').innerText = mode === 'mic' ? 'MICRÓFONO' : 'SPIRIT BOX';
+        document.getElementById('ui-mic').classList.add('hidden');
+        document.getElementById('ui-spirit').classList.add('hidden');
+        
+        if(mode === 'mic') document.getElementById('ui-mic').classList.remove('hidden');
+        else {
+            document.getElementById('ui-spirit').classList.remove('hidden');
+            initSpeechRec();
+        }
+
+        setupAudioEngine();
+        establishConnection();
+        showScreen('active');
+    }
+
+    function setupAudioEngine() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        destNode = audioCtx.createMediaStreamDestination();
+        
+        micSource = audioCtx.createMediaStreamSource(localStream);
+        micSource.connect(destNode);
+        
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 32;
+        micSource.connect(analyser);
+        initVisualizer();
+    }
+
+    function establishConnection() {
+        if(!currentHostId || !peer) return;
+        
+        // CORRECCION VITAL: Inyectar video para estabilizar conexión
+        const mixStream = destNode.stream;
+        if(localStream.getVideoTracks().length > 0) {
+            mixStream.addTrack(localStream.getVideoTracks()[0].clone());
+        }
+
+        // Call (Audio/Video)
+        const call = peer.call(currentHostId, mixStream);
+        
+        // Conn (Data/Keepalive)
+        conn = peer.connect(currentHostId);
+        
+        conn.on('close', () => {
+            alert("Detector desconectado");
+            logout();
+        });
+        
+        conn.on('error', () => logout());
+    }
+
+    // --- 4. SPIRIT BOX LOGIC (GEMINI CONTEXT) ---
+    function initSpeechRec() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = false;
+            
+            recognition.onresult = (e) => {
+                const q = e.results[0][0].transcript;
+                document.getElementById('spirit-text').innerText = `"${q}"`;
+                askAI(q);
+            };
+            recognition.onerror = () => askAI(""); 
+        }
+    }
+
+    function startEVP() {
+        if(isProcessing) return;
+        if(recognition) {
+            uiListen(true);
+            recognition.start();
+        } else {
+            askAI("");
+        }
+    }
+
+    async function askAI(question) {
+        uiListen(false);
+        if(isProcessing) return;
+        isProcessing = true;
+        
+        const btn = document.getElementById('btn-invoke');
+        const status = document.getElementById('invoke-status');
+        const txt = document.getElementById('spirit-text');
+        
+        btn.classList.add('animate-spin');
+        status.innerText = "CONTACTANDO...";
+        
+        try {
+            const cvs = document.createElement('canvas');
+            cvs.width = 640; cvs.height = 480;
+            cvs.getContext('2d').drawImage(document.getElementById('keep-alive-video'),0,0,640,480);
+            const b64 = cvs.toDataURL('image/jpeg', 0.5).split(',')[1];
+
+            // PROMPT CONTEXTUAL MEJORADO
+            let p = `Eres una entidad sobrenatural en este lugar exacto (mira la imagen).
+            Pregunta del investigador: "${question}".
+            Instrucción: Responde a la pregunta usando elementos visuales de la imagen como referencia. 
+            Ejemplo: Si preguntan "¿Dónde estás?" y hay una puerta, di "Detrás de la puerta de madera".
+            Sé breve (max 8 palabras), aterrador y directo.`;
+
+            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contents: [{ parts: [{text: p}, {inline_data: {mime_type: "image/jpeg", data: b64}}] }] })
+            });
+            
+            const d = await r.json();
+            const ans = d.candidates?.[0]?.content?.parts?.[0]?.text || "Ruido blanco...";
+            
+            txt.innerText = ans.toUpperCase();
+            txt.style.color = "var(--secondary)";
+            speak(ans);
+
+        } catch(e) {
+            txt.innerText = "...";
+            console.error(e);
+        } finally {
+            btn.classList.remove('animate-spin');
+            status.innerText = "MANTÉN PARA PREGUNTAR";
+            status.style.color = "#555";
+            isProcessing = false;
+        }
+    }
+
+    function speak(text) {
+        if('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'es-ES'; u.pitch = 0.6; u.rate = 0.85;
+            window.speechSynthesis.speak(u);
+        }
+    }
+
+    function uiListen(active) {
+        const btn = document.getElementById('btn-invoke');
+        const icon = document.getElementById('invoke-icon');
+        const st = document.getElementById('invoke-status');
+        
+        if(active) {
+            btn.style.borderColor = "#00ff41";
+            btn.style.boxShadow = "0 0 30px #00ff41";
+            icon.className = "fas fa-microphone text-4xl text-green-500";
+            st.innerText = "ESCUCHANDO...";
+            st.style.color = "#00ff41";
+        } else {
+            btn.style.borderColor = "var(--secondary)";
+            btn.style.boxShadow = "0 0 20px rgba(255,0,85,0.3)";
+            icon.className = "fas fa-fingerprint text-4xl text-red-500";
+        }
+    }
+
+    // --- UTILS ---
+    function initVisualizer() {
+        const c = document.getElementById('vu-visualizer');
+        c.innerHTML = '';
+        const bars = [];
+        for(let i=0; i<20; i++) { const b=document.createElement('div'); b.className='vu-bar'; c.appendChild(b); bars.push(b); }
+        const d = new Uint8Array(analyser.frequencyBinCount);
+        function loop() {
+            if(screens.active.classList.contains('active')) {
+                analyser.getByteFrequencyData(d);
+                for(let i=0; i<20; i++) {
+                    const v = d[i]; bars[i].style.height = Math.max(2, (v/255)*100)+'%';
+                    bars[i].style.backgroundColor = v>180 ? 'var(--secondary)' : 'var(--primary)';
+                }
+            }
+            requestAnimationFrame(loop);
+        }
+        loop();
+    }
+
+    function showScreen(id) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[id].classList.add('active');
+    }
+
+    function logout() {
+        if(peer) peer.destroy();
+        location.reload();
+    }
+
+</script>
 </body>
 </html>
