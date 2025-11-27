@@ -5,31 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>OBR LINK v4.0 APP</title>
+    <title>OBR LINK v5.7 BACKGROUND</title>
     
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Creepster&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { --primary: #00f3ff; --secondary: #ff0055; }
-        body {
-            background-color: #000;
-            background-image: url('fondo_pantalla.jpg'); background-size: cover; background-position: center;
-            color: var(--primary); font-family: 'Orbitron', sans-serif;
-            overflow: hidden; height: 100dvh; width: 100vw; user-select: none;
-        }
-        body::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: -1; }
+        :root { --primary: #00f3ff; --secondary: #ff0055; --success: #00ff41; --warn: #ffae00; }
         
-        .screen { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
+        /* BASE */
+        html, body {
+            background-color: #000;
+            color: var(--primary); font-family: 'Orbitron', sans-serif;
+            overflow: hidden; width: 100vw; height: 100dvh;
+            margin: 0; padding: 0;
+            user-select: none; -webkit-touch-callout: none;
+            position: fixed;
+        }
+
+        /* FONDO DE PANTALLA GLOBAL */
+        #bg-static { 
+            position: fixed; inset: 0; z-index: -10; 
+            background-image: url('fondo_pantalla.jpg'); 
+            background-size: cover; background-position: center; 
+        }
+        
+        /* CAPA OSCURA (Controlada por JS) */
+        #bg-overlay { 
+            position: absolute; inset: 0; 
+            background: rgba(0,0,0,0.9); /* Default dark */
+            z-index: -5; transition: opacity 0.5s ease; 
+        }
+        
+        /* CAMARA FONDO (Spirit Mode) */
+        #cam-video-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: -20; display: none; 
+        }
+        
+        /* FILTRO VISUAL (Spirit Mode) */
+        #cam-filter-layer {
+            position: fixed; inset: 0; z-index: -15; pointer-events: none; display: none;
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.9) 95%);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+            mix-blend-mode: multiply;
+        }
+
+        .screen { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.3s; width: 100%; height: 100%; }
         .screen.active { display: flex; opacity: 1; z-index: 20; }
 
-        /* BOTONES APP */
+        /* MENU */
         .app-btn {
             background: rgba(0, 0, 0, 0.6); border: 1px solid var(--primary); color: white;
-            padding: 20px; border-radius: 15px; width: 100%; max-width: 350px;
+            padding: 20px; border-radius: 15px; width: 100%; max-width: 320px;
             display: flex; align-items: center; gap: 15px; cursor: pointer;
             backdrop-filter: blur(10px); margin-bottom: 15px; transition: 0.2s;
         }
@@ -37,211 +68,474 @@
         .app-btn.red { border-color: var(--secondary); }
         .app-btn.red:active { background: var(--secondary); color: white; }
 
-        /* ESCANER */
+        /* SCANNER */
         #scan-video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: -1; }
         .scan-box { width: 250px; height: 250px; border: 4px solid var(--primary); box-shadow: 0 0 30px var(--primary); position: relative; }
         .scan-line { width: 100%; height: 2px; background: var(--secondary); position: absolute; animation: scan 2s infinite; }
         @keyframes scan { 0%{top:0} 50%{top:100%} 100%{top:0} }
 
-        /* LIVE UI */
-        .status-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); }
-        .invoke-btn {
-            width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--secondary);
-            background: rgba(0,0,0,0.6); color: var(--secondary); font-size: 2.5rem;
-            display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
-            box-shadow: 0 0 20px var(--secondary); transition: 0.3s;
+        /* LIVE STATUS */
+        .status-bar { 
+            position: absolute; top: 0; left: 0; width: 100%; padding: 15px; padding-top: max(15px, env(safe-area-inset-top));
+            display: flex; justify-content: space-between; align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); 
+            z-index: 50; pointer-events: none; 
         }
-        .invoke-btn.listening { border-color: #00ff41; color: #00ff41; box-shadow: 0 0 40px #00ff41; transform: scale(1.1); }
+        .status-bar button { pointer-events: auto; }
         
-        /* VIDEO OCULTO PERO ACTIVO */
-        #keep-alive { position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
-        /* CAMARA PREVIEW */
-        #cam-preview { position: absolute; top: 80px; right: 20px; width: 100px; height: 140px; border: 1px solid #555; background: #000; object-fit: cover; opacity: 0.8; display: none; }
-        #cam-preview.show { display: block; }
+        .status-indicator {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px;
+            border: 1px solid #333;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
+        .dot.online { background: var(--success); box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
+        .dot.offline { background: var(--secondary); }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* INVOKE BUTTON */
+        .invoke-container {
+            position: absolute; bottom: 40px; left: 0; width: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 50;
+        }
+        .invoke-btn {
+            width: 90px; height: 90px; border-radius: 50%; border: 2px solid #555;
+            background: rgba(0,0,0,0.8); color: #555; font-size: 2.5rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.3s; backdrop-filter: blur(4px); cursor: not-allowed;
+        }
+        .invoke-btn.calib-start { border-color: var(--secondary); color: var(--secondary); animation: pulseFast 0.5s infinite; cursor: wait; }
+        .invoke-btn.calib-mid { border-color: var(--warn); color: var(--warn); animation: pulseFast 0.8s infinite; cursor: wait; }
+        .invoke-btn.ready { border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.8); cursor: pointer; background: rgba(20,0,0,0.5); }
+        .invoke-btn.ready:active { transform: scale(0.95); background: var(--secondary); color: white; border-color: white; }
+        .invoke-btn.listening { border-color: var(--success); color: var(--success); box-shadow: 0 0 30px var(--success) inset; transform: scale(1.1); animation: none; }
+        .invoke-btn.locked { border-color: #333; color: #333; background: black; cursor: not-allowed; transform: scale(0.9); animation: none; }
+
+        @keyframes pulseFast { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+
+        #spirit-text {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            width: 95%; text-align: center;
+            font-family: 'Creepster'; font-size: 3rem; color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 4px 15px black; pointer-events: none; z-index: 40;
+            line-height: 1; transition: opacity 0.3s;
+        }
+
+        #invoke-label { font-size: 0.6rem; color: #666; margin-top: 10px; font-family: 'Share Tech Mono'; letter-spacing: 1px; height: 15px; }
+
+        #btn-disconnect { font-size: 0.7rem; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; background: rgba(20,20,20,0.9); }
+        #modal-auth { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(5px); display: none; flex-direction: column; align-items: center; justify-content: center; }
+        #modal-auth.active { display: flex; }
+        .auth-input { background: #222; border: 1px solid #444; color: white; width: 100%; padding: 15px; margin: 15px 0; text-align: center; font-family: 'Orbitron'; outline: none; font-size: 1.2rem; }
 
     </style>
 </head>
 <body>
 
+    <div id="bg-static"></div>
+    <div id="bg-overlay"></div>
+    <video id="cam-video-bg" playsinline autoplay muted loop></video>
+    <div id="cam-filter-layer"></div>
+
     <!-- 1. LOGIN -->
     <div id="s-login" class="screen active">
         <img src="obr-logo.png" class="w-32 mb-6 animate-pulse drop-shadow-[0_0_15px_rgba(0,243,255,0.5)]">
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
-        <p class="text-xs text-gray-400 font-mono mb-10">ACCESO REMOTO SEGURO</p>
-        <button class="app-btn justify-center font-bold tracking-widest" onclick="startSystem()">INGRESAR</button>
-        <p class="absolute bottom-6 text-[10px] text-gray-600">v4.0 APP MOBILE</p>
+        <p class="text-xs text-gray-400 font-mono mb-10">TERMINAL DE ENLACE</p>
+        <button class="app-btn justify-center font-bold tracking-widest" onclick="startSystem()">INICIAR</button>
+        <p class="absolute bottom-6 text-[10px] text-gray-600">v5.7 REALITY</p>
     </div>
 
     <!-- 2. SCANNER -->
     <div id="s-scan" class="screen">
         <video id="scan-video" playsinline muted></video>
         <div class="scan-box"><div class="scan-line"></div></div>
-        <div class="absolute top-10 bg-black/80 px-6 py-2 rounded-full border border-cyan-500 text-cyan-400 text-sm font-bold tracking-widest">VINCULAR DETECTOR</div>
-        <p class="absolute bottom-24 text-white text-xs text-center w-64 opacity-90 bg-black/60 p-2 rounded">Escanea el código QR del Detector para iniciar sesión.</p>
-        <button onclick="location.reload()" class="absolute bottom-8 text-red-500 text-xs font-bold border-b border-red-500">CANCELAR</button>
+        <div class="absolute top-12 bg-black/80 px-6 py-2 rounded-full border border-cyan-500 text-cyan-400 text-sm font-bold">ESCANEAR DETECTOR</div>
+        <div class="absolute top-5 right-5 p-4 z-50 opacity-50" onclick="openAuthModal()"><i class="fas fa-cog text-white text-xl"></i></div>
+        <button onclick="location.reload()" class="absolute bottom-12 text-red-500 text-xs font-bold border-b border-red-500">CANCELAR</button>
+    </div>
+
+    <!-- MODAL OFFLINE -->
+    <div id="modal-auth">
+        <div class="auth-box">
+            <h3 class="text-white font-bold mb-2">MODO SOLITARIO</h3>
+            <input type="password" id="auth-pass" class="auth-input" placeholder="CLAVE">
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded">VOLVER</button>
+                <button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded font-bold">ENTRAR</button>
+            </div>
+        </div>
     </div>
 
     <!-- 3. MENU -->
     <div id="s-menu" class="screen">
         <div class="text-center mb-8">
             <img src="obr-logo.png" class="w-20 mx-auto mb-2">
-            <div class="text-xs text-green-400 border border-green-800 bg-green-900/30 px-3 py-1 rounded-full inline-block">Conectado</div>
+            <div id="menu-status" class="text-xs text-green-400 font-bold tracking-widest">CONECTADO</div>
         </div>
 
         <div class="app-btn" onclick="setMode('mic')">
             <i class="fas fa-microphone-lines text-2xl"></i>
-            <div><div class="font-bold">MICRÓFONO PRO</div><div class="text-[10px] text-gray-300">Audio Alta Fidelidad</div></div>
+            <div><div class="font-bold">MICRÓFONO PRO</div><div class="text-[10px] text-gray-300">Audio Puro</div></div>
         </div>
 
         <div class="app-btn red" onclick="setMode('spirit')">
             <i class="fas fa-ghost text-2xl text-red-500"></i>
-            <div><div class="font-bold">SPIRIT BOX AI</div><div class="text-[10px] text-gray-300">EVP Contextual</div></div>
+            <div><div class="font-bold">SPIRIT BOX AI</div><div class="text-[10px] text-gray-300">Realidad Aumentada</div></div>
         </div>
-        <div class="absolute bottom-6 text-[10px] text-gray-500">ID: <span id="host-id-disp">...</span></div>
     </div>
 
-    <!-- 4. LIVE -->
+    <!-- 4. LIVE INTERFACE -->
     <div id="s-live" class="screen">
         <div class="status-bar">
-            <div class="flex items-center gap-2"><div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div><span class="text-xs font-bold text-white">EN VIVO</span></div>
-            <div id="mode-badge" class="text-[10px] border border-gray-600 px-2 py-1 rounded text-gray-400">MIC</div>
+            <div class="status-indicator">
+                <div id="live-dot" class="dot offline"></div>
+                <span id="live-text" class="text-[10px] font-bold text-gray-300">OFFLINE</span>
+            </div>
+            <button id="btn-disconnect" onclick="logout()">SALIR</button>
         </div>
 
-        <video id="cam-preview" autoplay muted playsinline></video>
+        <!-- UI MIC (Muestra Fondo) -->
+        <div id="ui-mic" class="hidden flex flex-col items-center justify-center h-full w-full">
+            <div class="w-48 h-48 rounded-full border-4 border-cyan-500 flex items-center justify-center bg-cyan-500/10 shadow-[0_0_80px_rgba(0,243,255,0.4)] animate-pulse">
+                <i class="fas fa-microphone text-7xl text-cyan-400"></i>
+            </div>
+            <p class="mt-8 text-cyan-300 text-sm font-mono tracking-widest">TRANSMITIENDO AUDIO</p>
+        </div>
 
-        <div class="flex-1 flex flex-col items-center justify-center w-full">
-            <!-- Mic UI -->
-            <div id="ui-mic" class="hidden"><div class="w-40 h-40 rounded-full border-2 border-cyan-500 flex items-center justify-center bg-cyan-500/10 shadow-[0_0_50px_rgba(0,243,255,0.3)]"><i class="fas fa-microphone text-6xl text-cyan-400"></i></div></div>
-            
-            <!-- Spirit UI -->
-            <div id="ui-spirit" class="hidden flex-col items-center">
-                <button id="invoke-btn" class="invoke-btn" onclick="startEVP()"><i class="fas fa-fingerprint"></i></button>
-                <p id="invoke-lbl" class="text-xs text-gray-400 font-mono mb-4">TOCA PARA PREGUNTAR</p>
-                <div id="spirit-txt" class="text-center text-red-500 font-mono text-lg min-h-[60px] px-4">...</div>
+        <!-- UI SPIRIT -->
+        <div id="ui-spirit" class="hidden w-full h-full relative">
+            <div id="spirit-text"></div>
+            <div class="invoke-container">
+                <button id="invoke-btn" class="invoke-btn" onpointerdown="startListening()" onpointerup="stopListening()" oncontextmenu="return false;" disabled>
+                    <i id="invoke-icon" class="fas fa-fingerprint"></i>
+                </button>
+                <div id="invoke-label">INICIANDO...</div>
             </div>
         </div>
-
-        <button onclick="logout()" class="w-full py-4 bg-red-900/40 text-red-400 font-bold text-sm rounded-xl border border-red-900/50 mb-4">CERRAR SESIÓN</button>
         
-        <!-- Hidden Engines -->
-        <video id="keep-alive" playsinline autoplay muted loop></video>
+        <video id="keep-alive-video" playsinline autoplay muted loop style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;"></video>
         <audio id="bg-noise" src="FONDO_1.mp3" loop></audio>
     </div>
 
 <script>
-    const GEMINI = "AIzaSyDbFXVNT5jyZZclbOexvgkB_FK8ijC5qU4";
+    const GEMINI = "AIzaSyDmpq-n1vvNeWmGwu5oU-KR6xl_lmnnnI8";
     let stream, peer, conn, hostId, audioCtx, micNode, destNode;
     let recognition, isProcessing=false;
+    let autoSpiritInterval;
+    let isStandalone = false;
+    let currentPitch = 0.5; let currentRate = 0.8;
+    let spiritScript = []; 
+    let isCalibrated = false;
+    let isFallbackMode = false;
 
+    // 1. SYSTEM START
     async function startSystem() {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: {echoCancellation:true, noiseSuppression:true}, video: {facingMode:"environment", width:{ideal:640}} });
-            document.getElementById('keep-alive').srcObject = stream;
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, 
+                video: {facingMode: { exact: "environment" }, width:{ideal:1280}} 
+            }).catch(async () => {
+                return await navigator.mediaDevices.getUserMedia({ audio: true, video: {facingMode: "environment"} });
+            });
+
             document.getElementById('scan-video').srcObject = stream;
-            document.getElementById('cam-preview').srcObject = stream;
+            document.getElementById('cam-video-bg').srcObject = stream;
+            document.getElementById('keep-alive-video').srcObject = stream;
+            
             document.getElementById('scan-video').play();
+            document.getElementById('cam-video-bg').play();
+            
+            if('geolocation' in navigator) {
+                navigator.geolocation.watchPosition(p => {
+                    const s = (p.coords.latitude * 10000) % 10;
+                    currentPitch = 0.3 + (s/20); 
+                }, null, {enableHighAccuracy:true});
+            }
+
             show('s-scan'); scanQR();
-        } catch(e) { alert("Error: " + e.message); }
+        } catch(e) { alert("Error Permisos: " + e.message); }
+    }
+
+    // 2. AUTH & QR
+    function openAuthModal() { document.getElementById('modal-auth').classList.add('active'); }
+    function closeAuthModal() { document.getElementById('modal-auth').classList.remove('active'); }
+    function checkAuth() {
+        if(document.getElementById('auth-pass').value === "OBR1995@") {
+            isStandalone = true;
+            closeAuthModal();
+            updateStatusUI(false);
+            show('s-menu');
+        } else alert("Error");
     }
 
     function scanQR() {
         const v = document.getElementById('scan-video');
         const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
         function loop() {
-            if(v.readyState===4) {
+            if(isStandalone) return;
+            if(v.readyState===4 && document.getElementById('s-scan').style.display === 'flex') {
                 cvs.width=v.videoWidth; cvs.height=v.videoHeight; ctx.drawImage(v,0,0);
                 const c = jsQR(ctx.getImageData(0,0,cvs.width,cvs.height).data, cvs.width, cvs.height);
                 if(c) { link(c.data); return; }
             }
-            if(document.getElementById('s-scan').style.display === 'flex') requestAnimationFrame(loop);
+            requestAnimationFrame(loop);
         } loop();
     }
 
     function link(id) {
-        hostId = id; document.getElementById('host-id-disp').innerText = id;
+        hostId = id;
+        isStandalone = false;
         peer = new Peer();
-        peer.on('open', () => show('s-menu'));
-        peer.on('error', () => { alert("Error Conexion"); location.reload(); });
-        setTimeout(logout, 36000000); // 10 Horas
+        peer.on('open', () => { updateStatusUI(true); show('s-menu'); });
+        peer.on('error', () => { updateStatusUI(false); alert("Error Red"); location.reload(); });
+        peer.on('disconnected', () => updateStatusUI(false));
     }
 
+    function updateStatusUI(online) {
+        const dot = document.getElementById('live-dot');
+        const txt = document.getElementById('live-text');
+        const menuStat = document.getElementById('menu-status');
+        if(online) {
+            if(dot) dot.className = "dot online"; if(txt){ txt.innerText = "EN VIVO"; txt.style.color="#00ff41"; }
+            menuStat.innerText = "CONECTADO"; menuStat.style.color="#00ff41";
+        } else {
+            if(dot) dot.className = "dot offline"; if(txt){ txt.innerText = "OFFLINE"; txt.style.color="#ff0055"; }
+            menuStat.innerText = "MODO LOCAL"; menuStat.style.color="#ffae00";
+        }
+    }
+
+    // 3. MODE SET
     function setMode(m) {
-        document.getElementById('mode-badge').innerText = m==='mic' ? 'MIC PRO' : 'SPIRIT AI';
-        document.getElementById('ui-mic').className = m==='mic' ? 'block' : 'hidden';
-        document.getElementById('ui-spirit').className = m==='spirit' ? 'flex flex-col items-center' : 'hidden';
-        document.getElementById('cam-preview').className = m==='spirit' ? 'show' : '';
+        const uiMic = document.getElementById('ui-mic');
+        const uiSpirit = document.getElementById('ui-spirit');
+        const camBg = document.getElementById('cam-video-bg');
+        const filter = document.getElementById('cam-filter-layer');
+        const overlay = document.getElementById('bg-overlay');
+        const bgAudio = document.getElementById('bg-noise');
+
+        uiMic.classList.add('hidden'); uiSpirit.classList.add('hidden');
+        camBg.style.display = 'none'; filter.style.display = 'none';
+        overlay.style.opacity = '0.85';
+        clearInterval(autoSpiritInterval);
+
+        if(m === 'mic') {
+            uiMic.classList.remove('hidden');
+            // MODO MIC: Overlay a 0.5 para ver el fondo estático
+            overlay.style.opacity = '0.5'; 
+            bgAudio.pause();
+        } else {
+            uiSpirit.classList.remove('hidden');
+            camBg.style.display = 'block'; 
+            filter.style.display = 'block'; 
+            overlay.style.opacity = '0';
+            
+            initSpeech();
+            bgAudio.volume = 0.4;
+            bgAudio.play().catch(()=>{});
+            
+            if(!isCalibrated) {
+                calibrateRoom();
+            } else {
+                enableButton();
+                startPassiveLoop(); 
+            }
+        }
         
-        const bg = document.getElementById('bg-noise');
-        if(m==='spirit') { initSpeech(); bg.volume=0.3; bg.play().catch(()=>{}); } else bg.pause();
-        
-        initAudio();
+        initAudioEngine();
         show('s-live');
     }
 
-    function initAudio() {
-        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-        destNode = audioCtx.createMediaStreamDestination();
-        micNode = audioCtx.createMediaStreamSource(stream);
-        micNode.connect(destNode);
+    // 4. CALIBRATION
+    async function calibrateRoom() {
+        const btn = document.getElementById('invoke-btn');
+        const label = document.getElementById('invoke-label');
         
-        const callStream = destNode.stream;
-        if(stream.getVideoTracks().length>0) callStream.addTrack(stream.getVideoTracks()[0].clone());
-        
-        peer.call(hostId, callStream);
-        conn = peer.connect(hostId);
-        conn.on('close', ()=>logout());
+        btn.disabled = true;
+        btn.className = 'invoke-btn calib-start';
+        label.innerText = "ESCANENDO ENTORNO...";
+        label.style.color = "#ff0055";
+
+        const apiCall = new Promise(async (resolve, reject) => {
+            try {
+                const cvs = document.createElement('canvas');
+                const vid = document.getElementById('keep-alive-video');
+                cvs.width = 640; cvs.height = 480;
+                cvs.getContext('2d').drawImage(vid, 0, 0, 640, 480);
+                const b64 = cvs.toDataURL('image/jpeg', 0.6).split(',')[1];
+
+                setTimeout(() => {
+                    btn.className = 'invoke-btn calib-mid';
+                    label.innerText = "SINTONIZANDO...";
+                    label.style.color = "#ffae00";
+                }, 1500);
+
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI}`, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        contents:[{parts:[{text: "Genera una lista de 50 PALABRAS SUELTAS en mayúsculas separadas por '|' sobre lo que ves en la imagen (muebles, luz, objetos)."}, {inline_data:{mime_type:"image/jpeg",data:b64}}]}]
+                    })
+                });
+                const d = await r.json();
+                const rawText = d.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                if(rawText) spiritScript = rawText.split('|').map(s => s.trim()).filter(s => s.length > 2);
+                isFallbackMode = false;
+                resolve();
+            } catch(e) { reject(e); }
+        });
+
+        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 5000));
+
+        try {
+            await Promise.race([apiCall, timeout]);
+        } catch(e) {
+            spiritScript = []; 
+            isFallbackMode = true;
+        } finally {
+            if(spiritScript.length < 5) {
+                spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA", "LUZ", "PUERTA", "PISO"];
+                isFallbackMode = true;
+            }
+            isCalibrated = true;
+            enableButton();
+            startPassiveLoop();
+        }
     }
 
+    function enableButton() {
+        const btn = document.getElementById('invoke-btn');
+        const label = document.getElementById('invoke-label');
+        btn.disabled = false;
+        label.innerText = ""; // OCULTAR TEXTO "VÍNCULO ESTABLECIDO"
+
+        if(isFallbackMode) btn.className = 'invoke-btn fallback'; // NARANJA PULSANTE
+        else btn.className = 'invoke-btn ready';
+    }
+
+    function startPassiveLoop() {
+        clearInterval(autoSpiritInterval);
+        autoSpiritInterval = setInterval(() => {
+            if(!isProcessing && document.getElementById('s-live').style.display === 'flex') {
+                const word = spiritScript[Math.floor(Math.random() * spiritScript.length)];
+                playEVPNoise();
+                const txt = document.getElementById('spirit-text');
+                txt.innerText = word.toUpperCase();
+                txt.style.opacity = 1;
+                speakWithEcho(word);
+                setTimeout(()=> txt.style.opacity=0, 3000);
+            }
+        }, 8000 + Math.random()*4000); 
+    }
+
+    // 5. ACTIVE MODE
     function initSpeech() {
         if('webkitSpeechRecognition' in window) {
             recognition = new webkitSpeechRecognition();
             recognition.lang = 'es-ES'; recognition.continuous = false;
-            recognition.onresult = e => askAI(e.results[0][0].transcript);
-            recognition.onerror = () => askAI("");
+            recognition.onresult = e => triggerRealtimeAI(e.results[0][0].transcript);
+            recognition.onerror = () => {};
         }
     }
 
-    function startEVP() {
+    function startListening() {
         if(isProcessing) return;
+        clearInterval(autoSpiritInterval); 
+        document.getElementById('bg-noise').volume = 0.1; 
         const btn = document.getElementById('invoke-btn');
-        document.getElementById('bg-noise').volume = 0.1;
-        if(recognition) {
-            btn.classList.add('listening');
-            btn.innerHTML = '<i class="fas fa-microphone"></i>';
-            document.getElementById('invoke-lbl').innerText = "ESCUCHANDO...";
-            recognition.start();
-        } else askAI("");
+        btn.classList.remove('fallback', 'ready');
+        btn.classList.add('listening');
+        document.getElementById('invoke-label').innerText = "ESCUCHANDO...";
+        document.getElementById('invoke-label').style.color = "#00ff41";
+        if(recognition) recognition.start();
+        else triggerRealtimeAI("");
     }
 
-    async function askAI(q) {
+    function stopListening() {
+        if(recognition) recognition.stop();
         const btn = document.getElementById('invoke-btn');
-        btn.classList.remove('listening'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        document.getElementById('invoke-lbl').innerText = "CONTACTANDO...";
-        
+        btn.classList.remove('listening');
+        btn.classList.add('locked'); 
+        btn.disabled = true;         
+        document.getElementById('invoke-label').innerText = "ANALIZANDO...";
+        document.getElementById('invoke-label').style.color = "#ffae00";
+    }
+
+    async function triggerRealtimeAI(question) {
+        if(isProcessing) return;
+        isProcessing = true;
+        const txt = document.getElementById('spirit-text');
+        txt.innerText = "..."; txt.style.opacity = 1;
+
         try {
-            const cvs = document.createElement('canvas'); cvs.width=640; cvs.height=480;
-            cvs.getContext('2d').drawImage(document.getElementById('keep-alive'),0,0);
+            const cvs = document.createElement('canvas');
+            const vid = document.getElementById('keep-alive-video');
+            cvs.width = 640; cvs.height = 480;
+            cvs.getContext('2d').drawImage(vid, 0, 0, 640, 480);
             const b64 = cvs.toDataURL('image/jpeg', 0.5).split(',')[1];
-            
+
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI}`, {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({contents:[{parts:[{text:`Rol: Espíritu. Pregunta: "${q}". Responde corto y tétrico según lo que ves.`},{inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
+                body:JSON.stringify({contents:[{parts:[{text: `Rol: Espíritu. Pregunta: "${question}". Responde directo basándote en la imagen nueva. Max 4 palabras.`},{inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
             });
-            const d = await r.json();
-            const txt = d.candidates?.[0]?.content?.parts?.[0]?.text || "...";
             
-            document.getElementById('spirit-txt').innerText = txt.toUpperCase();
-            if('speechSynthesis' in window) {
-                const u = new SpeechSynthesisUtterance(txt);
-                u.lang = 'es-ES'; u.pitch = 0.6; u.rate = 0.85;
-                window.speechSynthesis.speak(u);
+            const d = await r.json();
+            const ans = d.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if(ans) {
+                txt.innerText = ans.toUpperCase();
+                playEVPNoise();
+                speakWithEcho(ans);
             }
-        } catch(e) {}
+
+        } catch(e) { txt.innerText = "RUIDO..."; }
         
-        btn.innerHTML = '<i class="fas fa-fingerprint"></i>';
-        document.getElementById('invoke-lbl').innerText = "LISTO";
-        document.getElementById('bg-noise').volume = 0.3;
-        isProcessing = false;
+        setTimeout(() => { 
+            isProcessing = false; 
+            document.getElementById('bg-noise').volume = 0.4; 
+            txt.style.opacity = 0;
+            
+            const btn = document.getElementById('invoke-btn');
+            btn.classList.remove('locked');
+            btn.disabled = false;
+            
+            if(isFallbackMode) btn.className = 'invoke-btn fallback';
+            else btn.className = 'invoke-btn ready';
+            
+            document.getElementById('invoke-label').innerText = "";
+            startPassiveLoop();
+        }, 4000); 
+    }
+
+    function initAudioEngine() {
+        if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        if(!isStandalone && peer) {
+            if(!destNode) destNode = audioCtx.createMediaStreamDestination();
+            if(!micNode) { micNode = audioCtx.createMediaStreamSource(stream); micNode.connect(destNode); }
+            const callStream = destNode.stream;
+            if(stream.getVideoTracks().length>0) callStream.addTrack(stream.getVideoTracks()[0].clone());
+            peer.call(hostId, callStream);
+        }
+    }
+
+    function speakWithEcho(text) {
+        if('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = 0.8;
+            const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.3; u2.rate = 0.7; u2.volume = 0.6;
+            window.speechSynthesis.speak(u1);
+            setTimeout(()=>window.speechSynthesis.speak(u2), 120);
+        }
+    }
+
+    function playEVPNoise() {
+        if(!audioCtx) return;
+        const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.type='sawtooth'; osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime+0.5);
+        g.gain.setValueAtTime(0.05, audioCtx.currentTime); g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+0.5);
+        osc.start(); osc.stop(audioCtx.currentTime+0.5);
     }
 
     function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
