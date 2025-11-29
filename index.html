@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>OBR LINK v34.3 FINAL FLOW</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>OBR LINK v35.1 ULTIMATE</title>
     
     <!-- ICONO -->
     <link rel="apple-touch-icon" href="obr-logo.png">
@@ -20,19 +21,33 @@
     <style>
         :root { --primary: #00f3ff; --secondary: #ff0055; --success: #00ff41; --warn: #ffae00; }
         
+        /* RESET GLOBAL ANTI-SELECCION */
         * {
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             user-select: none;
             -webkit-user-select: none;
             outline: none;
+            box-sizing: border-box;
         }
 
         html, body {
             background-color: #000;
             color: var(--primary); font-family: 'Orbitron', sans-serif;
             overflow: hidden; width: 100vw; height: 100dvh;
-            margin: 0; padding: 0; position: fixed;
+            margin: 0; padding: 0; position: fixed; top: 0; left: 0;
+            touch-action: none; /* Bloquea gestos */
+        }
+
+        /* FORZAR VERTICAL (Anti-Giro) */
+        @media screen and (orientation: landscape) {
+            body {
+                transform: rotate(-90deg);
+                transform-origin: left top;
+                width: 100vh; height: 100vw;
+                overflow: hidden; position: absolute;
+                top: 100%; left: 0;
+            }
         }
 
         /* FONDOS */
@@ -43,6 +58,7 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover; z-index: -15; display: none; 
             filter: sepia(0.6) contrast(1.2) brightness(0.5) grayscale(0.8);
+            transform: scale(1.05);
         }
         #cam-filter-layer {
             position: fixed; inset: 0; z-index: -12; pointer-events: none; display: none;
@@ -80,6 +96,7 @@
             color: #aaa; font-size: 1.2rem; cursor: pointer;
             width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.5); border-radius: 50%; transition: 0.3s;
+            border: 1px solid #444;
         }
         #btn-api-config:active { color: white; background: var(--secondary); transform: rotate(90deg); }
 
@@ -99,22 +116,52 @@
         .dot.offline { background: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
+        /* INVOKE BUTTON */
         .invoke-container { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; }
-        .invoke-btn { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #555; background: rgba(0,0,0,0.8); color: #555; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; transition: 0.3s; backdrop-filter: blur(4px); cursor: not-allowed; }
-        .invoke-btn.ready { border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.8); cursor: pointer; background: rgba(20,0,0,0.5); }
-        .invoke-btn.ready:active { transform: scale(0.95); background: var(--secondary); color: white; border-color: white; }
+        .invoke-btn { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #555; background: rgba(0,0,0,0.8); color: #555; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; transition: 0.3s; backdrop-filter: blur(4px); cursor: not-allowed; -webkit-user-select: none; user-select: none; touch-action: none; }
+        
+        /* ESTADOS SEMÁFORO */
+        .invoke-btn.ready { border-color: rgba(255,255,255,0.9); color: white; cursor: pointer; background: rgba(255,255,255,0.15); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .invoke-btn.ready:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+
         .invoke-btn.listening { border-color: var(--success); color: var(--success); box-shadow: 0 0 30px var(--success) inset; transform: scale(1.1); animation: none; background: rgba(0, 50, 0, 0.5); }
         
-        /* BOTON BLOQUEADO REAL */
-        .invoke-btn.locked { 
-            border-color: #333; color: #333; background: black; 
-            cursor: not-allowed; transform: scale(0.9); animation: none; pointer-events: none; 
-        }
-        @keyframes pulseFast { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+        .invoke-btn.locked { border-color: var(--warn); color: var(--warn); background: black; cursor: not-allowed; transform: scale(0.9); animation: pulseWarn 1.5s infinite; box-shadow: none; pointer-events: none; }
+        
+        /* VERDE PULSOS = CARGA EXITOSA */
+        .invoke-btn.success { border-color: var(--success); color: var(--success); background: rgba(0, 50, 0, 0.8); animation: pulseSuccess 0.2s ease 2; }
 
-        #spirit-text { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); width: 95%; text-align: center; font-family: 'Creepster'; font-size: 3rem; color: rgba(255, 255, 255, 0.95); text-shadow: 0 4px 15px black; pointer-events: none; z-index: 40; line-height: 1; transition: opacity 0.3s; }
-        #invoke-label { font-size: 0.6rem; color: #666; margin-top: 10px; font-family: 'Share Tech Mono'; letter-spacing: 1px; height: 15px; }
-        #btn-disconnect { font-size: 0.7rem; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; background: rgba(20,20,20,0.9); }
+        @keyframes pulseWarn { 0% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } 50% { opacity: 1; box-shadow: 0 0 15px var(--warn); } 100% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } }
+        @keyframes pulseSuccess { 0% { transform: scale(1); box-shadow: 0 0 10px var(--success); } 50% { transform: scale(1.2); box-shadow: 0 0 30px var(--success); } 100% { transform: scale(1); box-shadow: 0 0 10px var(--success); } }
+
+        /* TEXTO ESPIRITU - MAS PEQUEÑO */
+        #spirit-text { 
+            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); 
+            width: 90%; text-align: center; 
+            font-family: 'Creepster'; font-size: 1.5rem; 
+            color: rgba(255, 255, 255, 0.95); 
+            text-shadow: 0 4px 10px black; pointer-events: none; z-index: 40; 
+            line-height: 1.2; transition: opacity 0.3s; 
+        }
+
+        #invoke-label { font-size: 0.6rem; color: #666; margin-top: 15px; font-family: 'Share Tech Mono'; letter-spacing: 1px; height: 15px; text-transform: uppercase; }
+        
+        /* BOTON DICCIONARIO (BAJADO) */
+        #btn-dictionary {
+            position: absolute; top: 100px; right: 20px; z-index: 60;
+            color: rgba(255, 255, 255, 0.6); font-size: 1.2rem; cursor: pointer;
+            display: none; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 50%;
+        }
+
+        /* LISTA PALABRAS (VISIBLES) */
+        .word-list { 
+            max-height: 60vh; overflow-y: auto; text-align: left; 
+            font-size: 0.8rem; color: var(--primary); font-family: 'Share Tech Mono'; 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
+        }
+        .word-item { background: rgba(0, 50, 50, 0.5); padding: 8px; border-left: 2px solid var(--primary); color: white; }
+
+        #btn-disconnect { font-size: 0.7rem; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; background: rgba(20,20,20,0.9); font-weight: bold; }
         #loading-spinner { display: none; width: 30px; height: 30px; border: 3px solid #333; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 10px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -131,40 +178,9 @@
         }
         @keyframes glitchText { 0% { transform: translate(0); } 20% { transform: translate(-1px, 1px); } 40% { transform: translate(1px, -1px); } 60% { transform: translate(-1px, -1px); } 80% { transform: translate(1px, 1px); } 100% { transform: translate(0); } }
 
-        /* BOTON DICCIONARIO MODIFICADO */
-        #btn-dictionary {
-            position: absolute; 
-            top: 100px; /* BAJADO */
-            right: 20px; z-index: 60;
-            color: rgba(255, 255, 255, 0.65); /* Opacidad 65% */
-            font-size: 1.2rem; cursor: pointer;
-            display: none; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-        
-        /* ESTADOS DEL DICCIONARIO */
-        #btn-dictionary.loading {
-            color: var(--warn); border: 1px solid var(--warn);
-            animation: pulse 1s infinite;
-        }
-        #btn-dictionary.success {
-            color: var(--success); border: 1px solid var(--success);
-            animation: successPulse 0.5s ease 2;
-        }
-        @keyframes successPulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 rgba(0,255,65,0); }
-            50% { transform: scale(1.2); box-shadow: 0 0 20px rgba(0,255,65,0.8); }
-            100% { transform: scale(1); box-shadow: 0 0 0 rgba(0,255,65,0); }
-        }
-
-        .word-list {
-            max-height: 60vh; overflow-y: auto; text-align: left; font-size: 0.7rem; color: #aaa; font-family: 'Share Tech Mono';
-            display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
-        }
-
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;" onselectstart="return false;">
 
     <div id="bg-static"></div>
     <div id="bg-overlay"></div>
@@ -177,21 +193,16 @@
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
         <p class="text-xs text-gray-400 font-mono mb-10">TERMINAL DE ENLACE</p>
         <button class="app-btn justify-center font-bold tracking-widest" onclick="startSystem()">INICIAR</button>
-        <p class="absolute bottom-6 text-[10px] text-gray-600">v34.3 FINAL FLOW</p>
+        <p class="absolute bottom-6 text-[10px] text-gray-600">v35.1 ULTIMATE</p>
     </div>
 
     <!-- 2. SCANNER -->
     <div id="s-scan" class="screen">
         <video id="scan-video" playsinline muted></video>
         <div class="scan-box"><div class="scan-line"></div></div>
-        <div class="absolute top-12 bg-black/80 px-6 py-2 rounded-full border border-cyan-500 text-cyan-400 text-sm font-bold">ESCANEAR DETECTOR</div>
-        
-        <!-- BOTON DISCRETO OFFLINE -->
-        <div id="btn-offline-access" onclick="openAuthModal()">
-            <i class="fas fa-cog"></i>
-        </div>
-
-        <button onclick="location.reload()" class="absolute bottom-12 text-red-500 text-xs font-bold border-b border-red-500">CANCELAR</button>
+        <div class="absolute top-12 bg-black/80 px-6 py-3 rounded-full border border-cyan-500 text-cyan-400 text-xs font-bold tracking-widest">ESCANEAR DETECTOR</div>
+        <div id="btn-offline-access" onclick="openAuthModal()"><i class="fas fa-cog"></i></div>
+        <button onclick="location.reload()" class="absolute bottom-12 text-red-500 text-xs font-bold border-b border-red-500 pb-1">CANCELAR</button>
     </div>
 
     <!-- MODAL OFFLINE -->
@@ -200,8 +211,8 @@
             <h3 class="text-white font-bold mb-2">MODO SOLITARIO</h3>
             <input type="password" id="auth-pass" class="auth-input" placeholder="CLAVE DE ACCESO">
             <div class="flex gap-2 mt-4">
-                <button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded">VOLVER</button>
-                <button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded font-bold">ENTRAR</button>
+                <button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg">VOLVER</button>
+                <button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded-lg font-bold">ENTRAR</button>
             </div>
         </div>
     </div>
@@ -209,18 +220,13 @@
     <!-- MODAL API CONFIG -->
     <div id="modal-api" class="modal-overlay" style="z-index: 5000;">
         <div class="modal-box">
-            <h3 class="text-cyan-400 font-bold mb-2">CONFIGURAR IA</h3>
-            <p class="text-[10px] text-gray-400 mb-2">Ingresa tu API Key de Google Gemini.</p>
-            
-            <button onclick="window.open('https://aistudio.google.com/api-keys', '_blank')" class="w-full py-2 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded flex items-center justify-center gap-2">
-                <i class="fas fa-external-link-alt"></i> GENERAR NUEVA CLAVE
-            </button>
-
-            <input type="text" id="input-api-key" class="auth-input" placeholder="AIzaSy...">
-            
+            <h3 class="text-cyan-400 font-bold mb-4 tracking-widest">IA CONFIG</h3>
+            <p class="text-[10px] text-gray-400 mb-4 leading-relaxed">Ingresa tu API Key de Google Gemini.</p>
+            <button onclick="window.open('https://aistudio.google.com/api-keys', '_blank')" class="w-full py-3 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded-lg flex items-center justify-center gap-2 font-bold hover:bg-gray-700"><i class="fas fa-key"></i> GENERAR NUEVA CLAVE</button>
+            <input type="text" id="input-api-key" class="auth-input" placeholder="Pegar AIzaSy...">
             <div class="flex gap-2 mt-4">
-                <button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded">CERRAR</button>
-                <button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-3 bg-blue-600 text-xs text-white rounded font-bold">VALIDAR</button>
+                <button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button>
+                <button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-3 bg-blue-600 text-xs text-white rounded-lg font-bold">VALIDAR</button>
             </div>
         </div>
     </div>
@@ -228,32 +234,31 @@
     <!-- MODAL DICCIONARIO -->
     <div id="modal-dictionary" class="modal-overlay" style="z-index: 5000;">
         <div class="modal-box mt-24" style="max-width: 500px;">
-            <h3 class="text-green-400 font-bold mb-2 tracking-widest">BANCO DE PALABRAS</h3>
+            <h3 class="text-green-400 font-bold mb-4 tracking-widest">BANCO DE PALABRAS</h3>
             <p class="text-[10px] text-gray-500 mb-4">Vocabulario activo de la entidad:</p>
             <div id="word-list-container" class="word-list border border-gray-800 p-2 rounded h-64 bg-black overflow-y-auto"></div>
-            <button onclick="document.getElementById('modal-dictionary').classList.remove('active')" class="w-full mt-4 py-2 bg-gray-800 text-xs text-white rounded-lg">CERRAR</button>
+            <button onclick="document.getElementById('modal-dictionary').classList.remove('active')" class="w-full mt-4 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button>
         </div>
     </div>
 
     <!-- 3. MENU -->
     <div id="s-menu" class="screen">
-        <div class="text-center mb-8 relative w-full">
-            <img src="obr-logo.png" class="w-20 mx-auto mb-2">
-            <div id="menu-status" class="text-xs text-green-400 font-bold tracking-widest">CONECTADO</div>
-            
+        <div class="text-center mb-10 relative w-full">
+            <img src="obr-logo.png" class="w-24 mx-auto mb-3">
+            <div id="menu-status" class="text-[10px] text-green-400 font-bold tracking-[3px] border border-green-900 px-3 py-1 rounded-full inline-block bg-green-900/20">CONECTADO</div>
             <div id="btn-api-config" onclick="openApiSettings()"><i class="fas fa-cog"></i></div>
         </div>
 
         <div class="app-btn" onclick="setMode('mic')">
-            <i class="fas fa-microphone-lines text-2xl"></i>
-            <div><div class="font-bold">MICRÓFONO PRO</div><div class="text-[10px] text-gray-300">Audio Puro</div></div>
+            <i class="fas fa-microphone-lines text-2xl text-cyan-400"></i>
+            <div><div class="font-bold text-sm">MICRÓFONO PRO</div><div class="text-[10px] text-gray-400">Audio Puro</div></div>
         </div>
 
         <div id="btn-spirit" class="app-btn red locked" onclick="setMode('spirit')">
             <i class="fas fa-ghost text-2xl text-red-500"></i>
             <div>
-                <div class="font-bold">SPIRIT BOX AI</div>
-                <div id="spirit-status" class="btn-status-indicator text-red-300">
+                <div class="font-bold text-sm">SPIRIT BOX AI</div>
+                <div id="spirit-status" class="text-[10px] text-red-400 font-bold flex items-center gap-2 mt-1">
                     <i class="fas fa-lock"></i> SIN API KEY
                 </div>
             </div>
@@ -305,6 +310,8 @@
                 <video id="seed-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
                     <div class="w-10 h-10 border-2 border-red-500 rounded-full"></div>
+                    <div class="absolute w-full h-[1px] bg-red-500"></div>
+                    <div class="absolute h-full w-[1px] bg-red-500"></div>
                 </div>
             </div>
             
@@ -314,7 +321,7 @@
             </div>
             
             <div id="loading-spinner"></div>
-            <div id="photo-status" class="text-xs text-yellow-500 mt-2 h-4"></div>
+            <div id="photo-status" class="text-xs text-yellow-500 mt-2 h-4 text-center font-mono"></div>
 
             <button onclick="closePhotoModal()" class="mt-4 text-xs text-gray-500 underline">CANCELAR</button>
         </div>
@@ -327,15 +334,14 @@
     let autoSpiritInterval;
     let isStandalone = false;
     let currentPitch = 0.5; let currentRate = 0.8;
-    let spiritScript = []; 
+    // BANCO INICIAL PREDETERMINADO PARA QUE NO ESTE VACIO
+    let spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA"];
     let isCalibrated = false;
     let isFallbackMode = false;
+    let speechTimeout; 
 
     // 1. SYSTEM START
     async function startSystem() {
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(e => console.log("Fullscreen error", e));
-        }
         try {
             stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, 
@@ -435,6 +441,7 @@
             document.getElementById('modal-api').classList.remove('active');
             updateApiStatus(undefined); 
             validateApiKey(key);
+            alert("LLAVE GUARDADA");
         }
     }
     
@@ -444,9 +451,7 @@
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: "Ping" }] }] })
             });
-            
-            if(response.ok) updateApiStatus(true);
-            else updateApiStatus(false);
+            if(response.ok) updateApiStatus(true); else updateApiStatus(false);
         } catch(e) { updateApiStatus(false); }
     }
     
@@ -454,6 +459,7 @@
         const btn = document.getElementById('btn-spirit');
         const status = document.getElementById('spirit-status');
         if(!btn || !status) return;
+
         if(isValid === true) {
             btn.classList.remove('locked'); btn.onclick = () => checkSpiritMode(); 
             status.innerHTML = "LISTO"; status.style.color = "#00ff41";
@@ -475,22 +481,7 @@
             document.getElementById('modal-photo').classList.add('active');
         }
     }
-
     function closePhotoModal() { document.getElementById('modal-photo').classList.remove('active'); }
-
-    function setDictionaryState(state) {
-        const btn = document.getElementById('btn-dictionary');
-        // Reset
-        btn.className = "";
-        btn.style.display = "block"; // Ensure visible in spirit mode
-        
-        if(state === 'loading') {
-            btn.classList.add('loading'); // Orange blink
-        } else if (state === 'success') {
-            btn.classList.add('success'); // Green pulse
-            setTimeout(() => btn.className = "", 1000); // Revert to default
-        }
-    }
 
     async function captureAndAnalyze() {
         const status = document.getElementById('photo-status');
@@ -500,9 +491,6 @@
         if(!videoPreview.videoWidth) { status.innerText = "ESPERA A LA CAMARA..."; return; }
 
         status.innerText = "ANALIZANDO..."; spinner.style.display = 'block';
-        
-        // Activar estado visual del boton diccionario (aunque aun no visible, preparamos)
-        setDictionaryState('loading');
         
         const cvs = document.createElement('canvas');
         cvs.width = 640; cvs.height = 480;
@@ -520,9 +508,8 @@
                 const d = await r.json();
                 const rawText = d.candidates?.[0]?.content?.parts?.[0]?.text || "";
                 if(rawText) {
-                    spiritScript = rawText.split('|').map(s => s.trim()).filter(s => s.length > 2);
-                    isFallbackMode = false;
-                    resolve();
+                    spiritScript = rawText.split('|').map(s => s.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ]/g, '')).filter(s => s.length > 2);
+                    isFallbackMode = false; resolve();
                 } else reject("Empty");
             } catch(e) { reject(e); }
         });
@@ -532,29 +519,32 @@
         try {
             await Promise.race([apiCall, timeout]);
             status.innerText = "LISTO";
-            setDictionaryState('success');
         } catch(e) {
             console.log("Fallback Local");
-            spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA"];
+            // Ya tiene valores por defecto
             isFallbackMode = true;
-            setDictionaryState('success'); // Even fallback is a success state for UI
         } finally {
             isCalibrated = true;
+            populateDictionary(); // Actualizar visual
             setTimeout(() => {
                 closePhotoModal();
                 setMode('spirit');
             }, 1000);
         }
     }
-
-    function openDictionary() {
+    
+    function populateDictionary() {
         const container = document.getElementById('word-list-container');
         container.innerHTML = "";
         spiritScript.forEach(word => {
-            const sp = document.createElement('span'); sp.innerText = word; container.appendChild(sp);
+            const sp = document.createElement('div'); 
+            sp.innerText = word; 
+            sp.className="word-item"; 
+            container.appendChild(sp);
         });
-        document.getElementById('modal-dictionary').classList.add('active');
     }
+
+    function openDictionary() { document.getElementById('modal-dictionary').classList.add('active'); }
 
     function setMode(m) {
         const uiMic = document.getElementById('ui-mic');
@@ -580,20 +570,26 @@
             camBg.style.display = 'block'; 
             filter.style.display = 'block'; 
             overlay.style.opacity = '0';
-            
             document.getElementById('bg-static').style.display = 'none';
             
             initSpeech();
-            bgAudio.volume = 1.0; // MAX VOLUME
+            bgAudio.volume = 1.0; 
             bgAudio.play().catch(()=>{});
             
+            triggerGreenPulse(); // Success Animation
             enableButton();
             startPassiveLoop();
             
-            dictBtn.style.display = 'block';
+            document.getElementById('btn-dictionary').style.display = 'block';
         }
         initAudioEngine();
         show('s-live');
+    }
+
+    function triggerGreenPulse() {
+        const btn = document.getElementById('invoke-btn');
+        btn.classList.add('success'); 
+        setTimeout(() => btn.classList.remove('success'), 600); 
     }
 
     // 5. SPIRIT LOGIC
@@ -601,22 +597,27 @@
         const btn = document.getElementById('invoke-btn');
         const label = document.getElementById('invoke-label');
         btn.disabled = false; label.innerText = "PULSA PARA PREGUNTAR"; label.style.color="#fff";
-        btn.className = 'invoke-btn ready';
+        btn.className = 'invoke-btn ready'; // BLANCO
     }
 
     function startPassiveLoop() {
         clearInterval(autoSpiritInterval);
+        // LOOP CADA 4-8 SEGUNDOS
         autoSpiritInterval = setInterval(() => {
             if(!isProcessing && document.getElementById('s-live').style.display === 'flex') {
-                const word = spiritScript[Math.floor(Math.random() * spiritScript.length)];
-                playEVPNoise();
-                const txt = document.getElementById('spirit-text');
-                txt.innerText = word.toUpperCase();
-                txt.style.opacity = 1;
-                speakWithEcho(word);
-                setTimeout(()=> txt.style.opacity=0, 3000);
+                triggerRandomWord();
             }
-        }, 8000 + Math.random()*4000); 
+        }, 4000 + Math.random()*4000); 
+    }
+    
+    function triggerRandomWord() {
+        if(spiritScript.length === 0) return;
+        const word = spiritScript[Math.floor(Math.random() * spiritScript.length)];
+        playEVPNoise();
+        const txt = document.getElementById('spirit-text');
+        txt.innerText = word.toUpperCase(); txt.style.opacity = 1;
+        speakWithEcho(word); // AHORA HABLA
+        setTimeout(()=> txt.style.opacity=0, 3000);
     }
 
     function initSpeech() {
@@ -628,11 +629,11 @@
     }
 
     function startListening() {
-        // LOCK CHECK
-        if(isProcessing) return;
-        
+        if(isProcessing) return; // BLOCK
         isProcessing = true;
         clearInterval(autoSpiritInterval); 
+        
+        // DUCKING
         document.getElementById('bg-noise').volume = 0.2; 
         
         const btn = document.getElementById('invoke-btn');
@@ -647,19 +648,32 @@
     function stopListening() {
         if(recognition) recognition.stop();
         const btn = document.getElementById('invoke-btn');
-        btn.classList.remove('listening'); btn.classList.add('locked'); 
-        btn.disabled = true;         
-        document.getElementById('invoke-label').innerText = "ANALIZANDO..."; document.getElementById('invoke-label').style.color = "#ffae00";
+        btn.classList.remove('listening'); btn.classList.add('locked'); btn.disabled = true;         
+        document.getElementById('invoke-label').innerText = "ANALIZANDO...";
+        document.getElementById('invoke-label').style.color = "#ffae00";
+        
+        // TIMEOUT SEGURIDAD 2s (FIX COLGADO)
+        speechTimeout = setTimeout(() => {
+            if(document.getElementById('spirit-text').innerText === "" || document.getElementById('spirit-text').style.opacity === '0') {
+                triggerRandomWord(); 
+                resetUIState();
+            }
+        }, 2000);
     }
 
     async function triggerRealtimeAI(question) {
-        // isProcessing is already true
+        clearTimeout(speechTimeout);
         const txt = document.getElementById('spirit-text');
         txt.innerText = "..."; txt.style.opacity = 1;
 
+        // Validar si hubo audio
+        if(!question || question.length < 2) {
+             triggerRandomWord(); resetUIState(); return;
+        }
+
         try {
             const cvs = document.createElement('canvas');
-            const vid = document.getElementById('keep-alive-video');
+            const vid = document.getElementById('cam-video-bg'); 
             cvs.width = 640; cvs.height = 480;
             cvs.getContext('2d').drawImage(vid, 0, 0, 640, 480);
             const b64 = cvs.toDataURL('image/jpeg', 0.5).split(',')[1];
@@ -676,19 +690,22 @@
                 txt.innerText = ans.toUpperCase();
                 playEVPNoise();
                 speakWithEcho(ans);
-            }
+            } else throw new Error("No text");
 
-        } catch(e) { txt.innerText = "RUIDO..."; }
+        } catch(e) { 
+            triggerRandomWord(); 
+        }
         
-        setTimeout(() => { 
-            isProcessing = false; 
-            document.getElementById('bg-noise').volume = 1.0; 
-            txt.style.opacity = 0;
-            const btn = document.getElementById('invoke-btn');
-            btn.classList.remove('locked'); btn.className = 'invoke-btn ready'; btn.disabled = false;
-            document.getElementById('invoke-label').innerText = "LISTO";
-            startPassiveLoop();
-        }, 4000); 
+        setTimeout(resetUIState, 4000); 
+    }
+    
+    function resetUIState() {
+        isProcessing = false; 
+        document.getElementById('bg-noise').volume = 1.0; 
+        document.getElementById('spirit-text').style.opacity = 0;
+        enableButton(); 
+        document.getElementById('invoke-label').innerText = "PULSA PARA PREGUNTAR";
+        startPassiveLoop();
     }
 
     // UTILS
@@ -706,10 +723,13 @@
     function speakWithEcho(text) {
         if('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
+            // Ducking
+            document.getElementById('bg-noise').volume = 0.2;
             const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = 0.8;
             const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.3; u2.rate = 0.7; u2.volume = 0.6;
             window.speechSynthesis.speak(u1);
             setTimeout(()=>window.speechSynthesis.speak(u2), 120);
+            setTimeout(() => { if(!isProcessing) document.getElementById('bg-noise').volume = 1.0; }, 2500);
         }
     }
 
