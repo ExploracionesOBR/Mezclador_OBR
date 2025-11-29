@@ -2,13 +2,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <!-- VIEWPORT OPTIMIZADO PARA APP NATIVA -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA META TAGS -->
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>OBR LINK v35.1 ULTIMATE</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- ICONO -->
+    <title>OBR LINK v35.3 NATIVE</title>
+    
     <link rel="apple-touch-icon" href="obr-logo.png">
     <link rel="icon" type="image/png" href="obr-logo.png">
     
@@ -21,7 +25,7 @@
     <style>
         :root { --primary: #00f3ff; --secondary: #ff0055; --success: #00ff41; --warn: #ffae00; }
         
-        /* RESET GLOBAL ANTI-SELECCION */
+        /* RESET AGRESIVO PARA APP NATIVA */
         * {
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
@@ -34,9 +38,15 @@
         html, body {
             background-color: #000;
             color: var(--primary); font-family: 'Orbitron', sans-serif;
-            overflow: hidden; width: 100vw; height: 100dvh;
-            margin: 0; padding: 0; position: fixed; top: 0; left: 0;
-            touch-action: none; /* Bloquea gestos */
+            /* USAR DVH PARA LLENAR PANTALLA REAL IGNORANDO BARRAS DE NAVEGADOR */
+            height: 100dvh; 
+            width: 100vw;
+            margin: 0; padding: 0; 
+            position: fixed; /* Evita el rebote en iOS */
+            top: 0; left: 0;
+            overflow: hidden;
+            overscroll-behavior: none; /* Bloquea el pull-to-refresh */
+            touch-action: none;
         }
 
         /* FORZAR VERTICAL (Anti-Giro) */
@@ -116,52 +126,29 @@
         .dot.offline { background: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* INVOKE BUTTON */
         .invoke-container { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; }
-        .invoke-btn { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #555; background: rgba(0,0,0,0.8); color: #555; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; transition: 0.3s; backdrop-filter: blur(4px); cursor: not-allowed; -webkit-user-select: none; user-select: none; touch-action: none; }
-        
-        /* ESTADOS SEMÁFORO */
-        .invoke-btn.ready { border-color: rgba(255,255,255,0.9); color: white; cursor: pointer; background: rgba(255,255,255,0.15); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
-        .invoke-btn.ready:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
-
+        .invoke-btn { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #555; background: rgba(0,0,0,0.8); color: #555; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; transition: 0.3s; backdrop-filter: blur(4px); cursor: not-allowed; }
+        .invoke-btn.ready { border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.8); cursor: pointer; background: rgba(20,0,0,0.5); }
+        .invoke-btn.ready:active { transform: scale(0.95); background: var(--secondary); color: white; border-color: white; }
         .invoke-btn.listening { border-color: var(--success); color: var(--success); box-shadow: 0 0 30px var(--success) inset; transform: scale(1.1); animation: none; background: rgba(0, 50, 0, 0.5); }
-        
-        .invoke-btn.locked { border-color: var(--warn); color: var(--warn); background: black; cursor: not-allowed; transform: scale(0.9); animation: pulseWarn 1.5s infinite; box-shadow: none; pointer-events: none; }
-        
-        /* VERDE PULSOS = CARGA EXITOSA */
-        .invoke-btn.success { border-color: var(--success); color: var(--success); background: rgba(0, 50, 0, 0.8); animation: pulseSuccess 0.2s ease 2; }
+        .invoke-btn.locked { border-color: #333; color: #333; background: black; cursor: not-allowed; transform: scale(0.9); animation: none; }
+        @keyframes pulseFast { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
 
-        @keyframes pulseWarn { 0% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } 50% { opacity: 1; box-shadow: 0 0 15px var(--warn); } 100% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } }
-        @keyframes pulseSuccess { 0% { transform: scale(1); box-shadow: 0 0 10px var(--success); } 50% { transform: scale(1.2); box-shadow: 0 0 30px var(--success); } 100% { transform: scale(1); box-shadow: 0 0 10px var(--success); } }
-
-        /* TEXTO ESPIRITU - MAS PEQUEÑO */
-        #spirit-text { 
-            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); 
-            width: 90%; text-align: center; 
-            font-family: 'Creepster'; font-size: 1.5rem; 
-            color: rgba(255, 255, 255, 0.95); 
-            text-shadow: 0 4px 10px black; pointer-events: none; z-index: 40; 
-            line-height: 1.2; transition: opacity 0.3s; 
-        }
-
-        #invoke-label { font-size: 0.6rem; color: #666; margin-top: 15px; font-family: 'Share Tech Mono'; letter-spacing: 1px; height: 15px; text-transform: uppercase; }
+        #spirit-text { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); width: 95%; text-align: center; font-family: 'Creepster'; font-size: 3rem; color: rgba(255, 255, 255, 0.95); text-shadow: 0 4px 15px black; pointer-events: none; z-index: 40; line-height: 1; transition: opacity 0.3s; }
+        #invoke-label { font-size: 0.6rem; color: #666; margin-top: 10px; font-family: 'Share Tech Mono'; letter-spacing: 1px; height: 15px; }
         
-        /* BOTON DICCIONARIO (BAJADO) */
         #btn-dictionary {
-            position: absolute; top: 100px; right: 20px; z-index: 60;
-            color: rgba(255, 255, 255, 0.6); font-size: 1.2rem; cursor: pointer;
+            position: absolute; top: 20px; right: 20px; z-index: 60;
+            color: rgba(255, 255, 255, 0.4); font-size: 1.2rem; cursor: pointer;
             display: none; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 50%;
         }
-
-        /* LISTA PALABRAS (VISIBLES) */
-        .word-list { 
-            max-height: 60vh; overflow-y: auto; text-align: left; 
-            font-size: 0.8rem; color: var(--primary); font-family: 'Share Tech Mono'; 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
+        
+        .word-list {
+            max-height: 60vh; overflow-y: auto; text-align: left; font-size: 0.7rem; color: #aaa; font-family: 'Share Tech Mono';
+            display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
         }
-        .word-item { background: rgba(0, 50, 50, 0.5); padding: 8px; border-left: 2px solid var(--primary); color: white; }
 
-        #btn-disconnect { font-size: 0.7rem; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; background: rgba(20,20,20,0.9); font-weight: bold; }
+        #btn-disconnect { font-size: 0.7rem; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; background: rgba(20,20,20,0.9); }
         #loading-spinner { display: none; width: 30px; height: 30px; border: 3px solid #333; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 10px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -180,7 +167,7 @@
 
     </style>
 </head>
-<body oncontextmenu="return false;" onselectstart="return false;">
+<body>
 
     <div id="bg-static"></div>
     <div id="bg-overlay"></div>
@@ -193,16 +180,21 @@
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
         <p class="text-xs text-gray-400 font-mono mb-10">TERMINAL DE ENLACE</p>
         <button class="app-btn justify-center font-bold tracking-widest" onclick="startSystem()">INICIAR</button>
-        <p class="absolute bottom-6 text-[10px] text-gray-600">v35.1 ULTIMATE</p>
+        <p class="absolute bottom-6 text-[10px] text-gray-600">v35.3 NATIVE</p>
     </div>
 
     <!-- 2. SCANNER -->
     <div id="s-scan" class="screen">
         <video id="scan-video" playsinline muted></video>
         <div class="scan-box"><div class="scan-line"></div></div>
-        <div class="absolute top-12 bg-black/80 px-6 py-3 rounded-full border border-cyan-500 text-cyan-400 text-xs font-bold tracking-widest">ESCANEAR DETECTOR</div>
-        <div id="btn-offline-access" onclick="openAuthModal()"><i class="fas fa-cog"></i></div>
-        <button onclick="location.reload()" class="absolute bottom-12 text-red-500 text-xs font-bold border-b border-red-500 pb-1">CANCELAR</button>
+        <div class="absolute top-12 bg-black/80 px-6 py-2 rounded-full border border-cyan-500 text-cyan-400 text-sm font-bold">ESCANEAR DETECTOR</div>
+        
+        <!-- BOTON DISCRETO OFFLINE -->
+        <div id="btn-offline-access" onclick="openAuthModal()">
+            <i class="fas fa-cog"></i>
+        </div>
+
+        <button onclick="location.reload()" class="absolute bottom-12 text-red-500 text-xs font-bold border-b border-red-500">CANCELAR</button>
     </div>
 
     <!-- MODAL OFFLINE -->
@@ -211,8 +203,8 @@
             <h3 class="text-white font-bold mb-2">MODO SOLITARIO</h3>
             <input type="password" id="auth-pass" class="auth-input" placeholder="CLAVE DE ACCESO">
             <div class="flex gap-2 mt-4">
-                <button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg">VOLVER</button>
-                <button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded-lg font-bold">ENTRAR</button>
+                <button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded">VOLVER</button>
+                <button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded font-bold">ENTRAR</button>
             </div>
         </div>
     </div>
@@ -220,13 +212,18 @@
     <!-- MODAL API CONFIG -->
     <div id="modal-api" class="modal-overlay" style="z-index: 5000;">
         <div class="modal-box">
-            <h3 class="text-cyan-400 font-bold mb-4 tracking-widest">IA CONFIG</h3>
-            <p class="text-[10px] text-gray-400 mb-4 leading-relaxed">Ingresa tu API Key de Google Gemini.</p>
-            <button onclick="window.open('https://aistudio.google.com/api-keys', '_blank')" class="w-full py-3 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded-lg flex items-center justify-center gap-2 font-bold hover:bg-gray-700"><i class="fas fa-key"></i> GENERAR NUEVA CLAVE</button>
-            <input type="text" id="input-api-key" class="auth-input" placeholder="Pegar AIzaSy...">
+            <h3 class="text-cyan-400 font-bold mb-2">CONFIGURAR IA</h3>
+            <p class="text-[10px] text-gray-400 mb-4">Ingresa tu API Key de Google Gemini.</p>
+            
+            <button onclick="window.open('https://aistudio.google.com/api-keys', '_blank')" class="w-full py-2 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded flex items-center justify-center gap-2 font-bold hover:bg-gray-700">
+                <i class="fas fa-external-link-alt"></i> GENERAR NUEVA CLAVE
+            </button>
+
+            <input type="text" id="input-api-key" class="auth-input" placeholder="AIzaSy...">
+            
             <div class="flex gap-2 mt-4">
-                <button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button>
-                <button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-3 bg-blue-600 text-xs text-white rounded-lg font-bold">VALIDAR</button>
+                <button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded">CERRAR</button>
+                <button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-3 bg-blue-600 text-xs text-white rounded font-bold">VALIDAR</button>
             </div>
         </div>
     </div>
@@ -246,6 +243,7 @@
         <div class="text-center mb-10 relative w-full">
             <img src="obr-logo.png" class="w-24 mx-auto mb-3">
             <div id="menu-status" class="text-[10px] text-green-400 font-bold tracking-[3px] border border-green-900 px-3 py-1 rounded-full inline-block bg-green-900/20">CONECTADO</div>
+            
             <div id="btn-api-config" onclick="openApiSettings()"><i class="fas fa-cog"></i></div>
         </div>
 
@@ -279,10 +277,7 @@
 
         <!-- UI MIC -->
         <div id="ui-mic" class="hidden flex flex-col items-center justify-center h-full w-full">
-            <div class="w-48 h-48 rounded-full border-4 border-cyan-500 flex items-center justify-center bg-cyan-500/10 shadow-[0_0_80px_rgba(0,243,255,0.4)] animate-pulse">
-                <i class="fas fa-microphone text-7xl text-cyan-400"></i>
-            </div>
-            <p class="mt-8 text-cyan-300 text-sm font-mono tracking-widest">TRANSMITIENDO AUDIO</p>
+             <!-- Limpio -->
         </div>
 
         <!-- UI SPIRIT -->
@@ -334,18 +329,24 @@
     let autoSpiritInterval;
     let isStandalone = false;
     let currentPitch = 0.5; let currentRate = 0.8;
-    // BANCO INICIAL PREDETERMINADO PARA QUE NO ESTE VACIO
-    let spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA"];
+    let spiritScript = []; 
     let isCalibrated = false;
     let isFallbackMode = false;
     let speechTimeout; 
 
     // 1. SYSTEM START
     async function startSystem() {
+        // Intentar forzar fullscreen al hacer click en iniciar
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(e => console.log("Fullscreen denied:", e));
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen(); // Safari
+        }
+
         try {
             stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, 
-                video: {facingMode: { exact: "environment" }, width:{ideal:1280}} 
+                video: {facingMode: { exact: "environment" }, width:{ideal:1280}, height:{ideal:720}} 
             }).catch(async () => {
                 return await navigator.mediaDevices.getUserMedia({ audio: true, video: {facingMode: "environment"} });
             });
@@ -491,9 +492,9 @@
         if(!videoPreview.videoWidth) { status.innerText = "ESPERA A LA CAMARA..."; return; }
 
         status.innerText = "ANALIZANDO..."; spinner.style.display = 'block';
+        setDictionaryState('loading');
         
-        const cvs = document.createElement('canvas');
-        cvs.width = 640; cvs.height = 480;
+        const cvs = document.createElement('canvas'); cvs.width = 640; cvs.height = 480;
         cvs.getContext('2d').drawImage(videoPreview, 0, 0, 640, 480);
         const b64 = cvs.toDataURL('image/jpeg', 0.6).split(',')[1];
         
@@ -519,13 +520,15 @@
         try {
             await Promise.race([apiCall, timeout]);
             status.innerText = "LISTO";
+            setDictionaryState('success');
         } catch(e) {
             console.log("Fallback Local");
-            // Ya tiene valores por defecto
+            spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA"];
             isFallbackMode = true;
+            setDictionaryState('success');
         } finally {
             isCalibrated = true;
-            populateDictionary(); // Actualizar visual
+            populateDictionary(); 
             setTimeout(() => {
                 closePhotoModal();
                 setMode('spirit');
@@ -542,6 +545,13 @@
             sp.className="word-item"; 
             container.appendChild(sp);
         });
+    }
+
+    function setDictionaryState(state) {
+        const btn = document.getElementById('btn-dictionary');
+        btn.className = ""; btn.style.display = "block";
+        if(state === 'loading') btn.classList.add('loading');
+        else if (state === 'success') { btn.classList.add('success'); setTimeout(() => btn.className = "", 1000); }
     }
 
     function openDictionary() { document.getElementById('modal-dictionary').classList.add('active'); }
@@ -562,23 +572,19 @@
         dictBtn.style.display = 'none';
 
         if(m === 'mic') {
-            uiMic.classList.remove('hidden');
-            overlay.style.opacity = '0.5'; 
-            bgAudio.pause();
+            uiMic.classList.remove('hidden'); overlay.style.opacity = '0.5'; bgAudio.pause();
         } else {
             uiSpirit.classList.remove('hidden');
-            camBg.style.display = 'block'; 
-            filter.style.display = 'block'; 
-            overlay.style.opacity = '0';
+            camBg.style.display = 'block'; filter.style.display = 'block'; overlay.style.opacity = '0';
             document.getElementById('bg-static').style.display = 'none';
             
             initSpeech();
             bgAudio.volume = 1.0; 
             bgAudio.play().catch(()=>{});
             
-            triggerGreenPulse(); // Success Animation
-            enableButton();
-            startPassiveLoop();
+            triggerGreenPulse(); 
+            enableButton(); // BLANCO
+            startPassiveLoop(); // INICIAR BUCLE
             
             document.getElementById('btn-dictionary').style.display = 'block';
         }
@@ -597,7 +603,7 @@
         const btn = document.getElementById('invoke-btn');
         const label = document.getElementById('invoke-label');
         btn.disabled = false; label.innerText = "PULSA PARA PREGUNTAR"; label.style.color="#fff";
-        btn.className = 'invoke-btn ready'; // BLANCO
+        btn.className = 'invoke-btn ready';
     }
 
     function startPassiveLoop() {
@@ -629,7 +635,7 @@
     }
 
     function startListening() {
-        if(isProcessing) return; // BLOCK
+        if(isProcessing) return;
         isProcessing = true;
         clearInterval(autoSpiritInterval); 
         
@@ -648,13 +654,15 @@
     function stopListening() {
         if(recognition) recognition.stop();
         const btn = document.getElementById('invoke-btn');
-        btn.classList.remove('listening'); btn.classList.add('locked'); btn.disabled = true;         
+        btn.classList.remove('listening'); btn.classList.add('locked'); 
+        btn.disabled = true;         
         document.getElementById('invoke-label').innerText = "ANALIZANDO...";
         document.getElementById('invoke-label').style.color = "#ffae00";
         
-        // TIMEOUT SEGURIDAD 2s (FIX COLGADO)
+        // SAFETY TIMEOUT (2s)
         speechTimeout = setTimeout(() => {
-            if(document.getElementById('spirit-text').innerText === "" || document.getElementById('spirit-text').style.opacity === '0') {
+            // Si sigue pensando despues de 2s, abortar y soltar palabra random
+            if(isProcessing && document.getElementById('spirit-text').innerText === "...") {
                 triggerRandomWord(); 
                 resetUIState();
             }
@@ -666,7 +674,6 @@
         const txt = document.getElementById('spirit-text');
         txt.innerText = "..."; txt.style.opacity = 1;
 
-        // Validar si hubo audio
         if(!question || question.length < 2) {
              triggerRandomWord(); resetUIState(); return;
         }
@@ -723,13 +730,10 @@
     function speakWithEcho(text) {
         if('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            // Ducking
-            document.getElementById('bg-noise').volume = 0.2;
             const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = 0.8;
             const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.3; u2.rate = 0.7; u2.volume = 0.6;
             window.speechSynthesis.speak(u1);
             setTimeout(()=>window.speechSynthesis.speak(u2), 120);
-            setTimeout(() => { if(!isProcessing) document.getElementById('bg-noise').volume = 1.0; }, 2500);
         }
     }
 
