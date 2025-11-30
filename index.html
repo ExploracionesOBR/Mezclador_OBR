@@ -2,16 +2,16 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- VIEWPORT OPTIMIZADO -->
+    <!-- VIEWPORT APP NATIVA -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>OBR LINK v36.0 AUDIO CORE</title>
+    <title>OBR LINK v36.3 CLEAR VISION</title>
     
-    <!-- ICONO -->
     <link rel="apple-touch-icon" href="obr-logo.png">
     <link rel="icon" type="image/png" href="obr-logo.png">
     
@@ -24,6 +24,7 @@
     <style>
         :root { --primary: #00f3ff; --secondary: #ff0055; --success: #00ff41; --warn: #ffae00; }
         
+        /* RESET TOTAL */
         * {
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
@@ -37,12 +38,12 @@
             background-color: #000;
             color: var(--primary); font-family: 'Orbitron', sans-serif;
             height: 100dvh; width: 100vw;
-            margin: 0; padding: 0; 
-            position: fixed; top: 0; left: 0;
-            overflow: hidden;
-            touch-action: none;
+            margin: 0; padding: 0; position: fixed; top: 0; left: 0;
+            touch-action: none; overflow: hidden;
+            overscroll-behavior: none;
         }
 
+        /* ANTI-GIRO */
         @media screen and (orientation: landscape) {
             body {
                 transform: rotate(-90deg);
@@ -54,25 +55,41 @@
         }
 
         /* FONDOS */
-        #bg-static { position: fixed; inset: 0; z-index: -10; background-image: url('fondo_pantalla.jpg'); background-size: cover; background-position: center; transition: opacity 0.5s; }
-        #bg-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: -5; transition: opacity 0.5s ease; }
+        #bg-static { 
+            position: fixed; inset: 0; z-index: -10; 
+            background-image: url('fondo_pantalla.jpg'); 
+            background-size: cover; background-position: center; 
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0; /* Oculto por defecto en modo Spirit */
+        }
         
+        #bg-overlay { 
+            position: absolute; inset: 0; 
+            background: rgba(0,0,0,0.8); /* Mas oscuro para leer mejor */
+            z-index: -5; transition: opacity 0.5s ease; 
+        }
+        
+        /* CAMARA - VISION CLARA CON TINTE VERDE */
         #cam-video-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover; z-index: -15; display: none; 
-            filter: sepia(0.6) contrast(1.2) brightness(0.5) grayscale(0.8);
-            transform: scale(1.05);
+            /* Filtro Ligero: Solo un toque de verde y brillo extra para oscuridad */
+            filter: sepia(0.2) hue-rotate(90deg) brightness(1.2) contrast(1.1) saturate(1.2);
+            transform: scale(1.02);
+            transition: opacity 0.5s;
         }
+        
+        /* SCANLINES SUTILES (SIN VIÑETA NEGRA) */
         #cam-filter-layer {
             position: fixed; inset: 0; z-index: -12; pointer-events: none; display: none;
-            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.95) 100%);
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
-            mix-blend-mode: multiply;
+            background: repeating-linear-gradient(0deg, rgba(0, 50, 0, 0.05), rgba(0, 50, 0, 0.05) 1px, transparent 1px, transparent 3px);
+            opacity: 0.6;
         }
 
         .screen { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.3s; width: 100%; height: 100%; }
         .screen.active { display: flex; opacity: 1; z-index: 20; }
 
+        /* BOTONES */
         .app-btn {
             background: rgba(0, 0, 0, 0.6); border: 1px solid var(--primary); color: white;
             padding: 20px; border-radius: 15px; width: 100%; max-width: 320px;
@@ -119,7 +136,8 @@
         .dot.offline { background: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        .invoke-container { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; }
+        .invoke-container { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; transition: opacity 0.5s; }
+        .invoke-container.hidden-mode { opacity: 0; pointer-events: none; }
         
         /* BOTON HUELLA */
         .invoke-btn { 
@@ -130,71 +148,56 @@
             -webkit-user-select: none; user-select: none; touch-action: none;
         }
         
-        /* ESTADOS */
-        .invoke-btn.ready { /* BLANCO */
-            border-color: rgba(255,255,255,0.9); color: white; 
-            cursor: pointer; background: rgba(255,255,255,0.15); 
-            box-shadow: 0 0 20px rgba(255,255,255,0.2);
-        }
-        .invoke-btn.ready:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
-
-        .invoke-btn.listening { /* VERDE */
-            border-color: var(--success); color: var(--success); 
-            box-shadow: 0 0 40px var(--success) inset; 
-            transform: scale(1.1); animation: none; background: rgba(0, 50, 0, 0.8);
-        }
-        
-        .invoke-btn.locked { /* NARANJA/GRIS OSCURO */
-            border-color: var(--warn); color: var(--warn); 
-            background: black; cursor: not-allowed; transform: scale(0.95); 
-            animation: pulseWarn 1s infinite; box-shadow: none; pointer-events: none;
-        }
-        
-        .invoke-btn.success { /* VERDE PULSOS */
-            border-color: var(--success); color: var(--success);
-            background: rgba(0, 50, 0, 0.8);
-            animation: pulseSuccess 0.3s ease 2;
-        }
+        .invoke-btn.ready { border-color: rgba(255,255,255,0.9); color: white; cursor: pointer; background: rgba(255,255,255,0.15); box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .invoke-btn.listening { border-color: var(--success); color: var(--success); box-shadow: 0 0 40px var(--success) inset; transform: scale(1.1); animation: none; background: rgba(0, 50, 0, 0.8); }
+        .invoke-btn.locked { border-color: var(--warn); color: var(--warn); background: black; cursor: not-allowed; transform: scale(0.95); animation: pulseWarn 1s infinite; box-shadow: none; pointer-events: none; }
+        .invoke-btn.success { border-color: var(--success); color: var(--success); background: rgba(0, 50, 0, 0.8); animation: pulseSuccess 0.3s ease 2; }
 
         @keyframes pulseWarn { 0% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } 50% { opacity: 1; box-shadow: 0 0 15px var(--warn); } 100% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } }
         @keyframes pulseSuccess { 0% { transform: scale(1); box-shadow: 0 0 10px var(--success); } 50% { transform: scale(1.2); box-shadow: 0 0 30px var(--success); } 100% { transform: scale(1); box-shadow: 0 0 10px var(--success); } }
 
-        /* TEXTO ESPIRITU */
         #spirit-text { 
-            position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); 
-            width: 90%; text-align: center; 
-            font-family: 'Creepster'; font-size: 1.4rem; color: rgba(255, 255, 255, 0.95); 
+            position: absolute; bottom: 250px; left: 50%; transform: translateX(-50%); 
+            width: 95%; text-align: center; 
+            font-family: 'Creepster'; font-size: 1.5rem; color: rgba(255, 255, 255, 0.95); 
             text-shadow: 0 4px 10px black; pointer-events: none; z-index: 40; 
             line-height: 1.2; transition: opacity 0.3s; 
         }
-
         #invoke-label { font-size: 0.6rem; color: #666; margin-top: 15px; font-family: 'Share Tech Mono'; letter-spacing: 1px; height: 15px; text-transform: uppercase; }
         
         /* BOTON DICCIONARIO */
         #btn-dictionary {
-            position: absolute; top: 160px; right: 20px; z-index: 60;
-            color: rgba(255, 255, 255, 0.5); font-size: 1.5rem; cursor: pointer;
-            display: none; padding: 10px; background: rgba(0,0,0,0.6); border-radius: 50%;
+            position: absolute; top: 100px; right: 20px; z-index: 60;
+            color: rgba(255, 255, 255, 0.6); font-size: 1.2rem; cursor: pointer;
+            display: none; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 50%;
         }
-        #btn-dictionary.loading { color: var(--warn); border: 1px solid var(--warn); animation: pulse 1s infinite; }
-        #btn-dictionary.success { color: var(--success); border: 1px solid var(--success); animation: successPulse 0.5s ease 2; }
-        @keyframes successPulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        .word-list { 
-            max-height: 60vh; overflow-y: auto; text-align: left; 
-            font-size: 0.85rem; color: #fff; font-family: 'Share Tech Mono'; 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
-        }
-        .word-item { background: rgba(0, 0, 0, 0.8); padding: 8px; border-left: 3px solid var(--primary); color: var(--primary); font-weight: bold; text-transform: uppercase; }
+        .word-list { max-height: 60vh; overflow-y: auto; text-align: left; font-size: 0.8rem; color: #fff; font-family: 'Share Tech Mono'; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .word-item { background: rgba(0, 50, 50, 0.6); padding: 8px; border-left: 3px solid var(--primary); color: var(--primary); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 5px var(--primary); }
 
         #btn-disconnect { font-size: 0.7rem; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; background: rgba(20,20,20,0.9); font-weight: bold; }
         #loading-spinner { display: none; width: 30px; height: 30px; border: 3px solid #333; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 10px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* AI FEEDBACK */
-        #ai-feedback-overlay {
-            position: absolute; top: 25px; left: 5px; z-index: 45; text-align: left; pointer-events: none; display: none; max-width: 280px;
+        /* SWITCH MODE */
+        #btn-toggle-mode {
+            position: absolute; bottom: 30px; right: 30px; z-index: 60;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: rgba(0,0,0,0.8); border: 2px solid var(--primary); color: var(--primary);
+            display: none; align-items: center; justify-content: center; font-size: 1.5rem;
+            cursor: pointer; transition: 0.3s; box-shadow: 0 0 15px rgba(0,243,255,0.3);
         }
+        #btn-toggle-mode.mic-active { background: var(--primary); color: black; box-shadow: 0 0 30px var(--primary); border-color: white; }
+
+        /* UI MIC PURO */
+        #ui-mic-overlay {
+            position: absolute; inset: 0; z-index: 40; pointer-events: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.5s;
+        }
+        #ui-mic-overlay.active { opacity: 1; }
+
+        #ai-feedback-overlay { position: absolute; top: 25px; left: 5px; z-index: 45; text-align: left; pointer-events: none; display: none; max-width: 280px; }
         #ai-feedback-text {
             font-family: 'Share Tech Mono'; font-size: 0.65rem; color: var(--hud-red);
             text-shadow: 0 0 5px red; background: transparent; padding: 2px 4px;
@@ -202,7 +205,6 @@
             animation: glitchText 0.2s infinite; letter-spacing: 1px; text-transform: uppercase;
             white-space: nowrap;
         }
-        @keyframes glitchText { 0% { transform: translate(0); } 20% { transform: translate(-1px, 1px); } 40% { transform: translate(1px, -1px); } 60% { transform: translate(-1px, -1px); } 80% { transform: translate(1px, 1px); } 100% { transform: translate(0); } }
 
     </style>
 </head>
@@ -213,16 +215,16 @@
     <video id="cam-video-bg" playsinline autoplay muted loop></video>
     <div id="cam-filter-layer"></div>
 
-    <!-- 1. LOGIN -->
+    <!-- LOGIN -->
     <div id="s-login" class="screen active">
         <img src="obr-logo.png" class="w-32 mb-6 animate-pulse drop-shadow-[0_0_15px_rgba(0,243,255,0.5)]">
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
         <p class="text-xs text-gray-400 font-mono mb-10">TERMINAL DE ENLACE</p>
-        <button class="app-btn justify-center font-bold tracking-widest" onclick="startSystem()">INICIAR</button>
-        <p class="absolute bottom-6 text-[10px] text-gray-600">v36.0 AUDIO CORE</p>
+        <button id="btn-enter-system" class="app-btn justify-center font-bold tracking-widest" onclick="startSystem()">INICIAR</button>
+        <p class="absolute bottom-6 text-[10px] text-gray-600">v36.3 CLEAR VISION</p>
     </div>
 
-    <!-- 2. SCANNER -->
+    <!-- SCANNER -->
     <div id="s-scan" class="screen">
         <video id="scan-video" playsinline muted></video>
         <div class="scan-box"><div class="scan-line"></div></div>
@@ -231,67 +233,32 @@
         <button onclick="location.reload()" class="absolute bottom-12 text-red-500 text-xs font-bold border-b border-red-500 pb-1">CANCELAR</button>
     </div>
 
-    <!-- MODAL OFFLINE -->
-    <div id="modal-auth" class="modal-overlay">
-        <div class="modal-box">
-            <h3 class="text-white font-bold mb-2">MODO SOLITARIO</h3>
-            <input type="password" id="auth-pass" class="auth-input" placeholder="CLAVE DE ACCESO">
-            <div class="flex gap-2 mt-4">
-                <button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg">VOLVER</button>
-                <button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded-lg font-bold">ENTRAR</button>
-            </div>
-        </div>
-    </div>
+    <!-- MODALES -->
+    <div id="modal-auth" class="modal-overlay"><div class="modal-box"><h3 class="text-white font-bold mb-2">MODO SOLITARIO</h3><input type="password" id="auth-pass" class="auth-input" placeholder="CLAVE"><div class="flex gap-2 mt-4"><button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg">VOLVER</button><button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded-lg font-bold">ENTRAR</button></div></div></div>
+    <div id="modal-api" class="modal-overlay" style="z-index: 5000;"><div class="modal-box"><h3 class="text-cyan-400 font-bold mb-4 tracking-widest">IA CONFIG</h3><p class="text-[10px] text-gray-400 mb-4">Ingresa tu API Key de Google Gemini.</p><button onclick="window.open('https://aistudio.google.com/api-keys', '_blank')" class="w-full py-3 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded-lg flex items-center justify-center gap-2 font-bold hover:bg-gray-700"><i class="fas fa-key"></i> GENERAR NUEVA CLAVE</button><input type="text" id="input-api-key" class="auth-input" placeholder="Pegar AIzaSy..."><div class="flex gap-2 mt-4"><button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button><button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-3 bg-blue-600 text-xs text-white rounded-lg font-bold">VALIDAR</button></div></div></div>
+    <div id="modal-dictionary" class="modal-overlay" style="z-index: 5000;"><div class="modal-box mt-24" style="max-width: 500px;"><h3 class="text-green-400 font-bold mb-4 tracking-widest">BANCO DE PALABRAS</h3><div id="word-list-container" class="word-list border border-gray-800 p-2 rounded h-64 bg-black overflow-y-auto"></div><button onclick="document.getElementById('modal-dictionary').classList.remove('active')" class="w-full mt-4 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button></div></div>
 
-    <!-- MODAL API CONFIG -->
-    <div id="modal-api" class="modal-overlay" style="z-index: 5000;">
-        <div class="modal-box">
-            <h3 class="text-cyan-400 font-bold mb-4 tracking-widest">IA CONFIG</h3>
-            <p class="text-[10px] text-gray-400 mb-4 leading-relaxed">Ingresa tu API Key de Google Gemini.</p>
-            <button onclick="window.open('https://aistudio.google.com/api-keys', '_blank')" class="w-full py-3 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded-lg flex items-center justify-center gap-2 font-bold hover:bg-gray-700"><i class="fas fa-key"></i> GENERAR NUEVA CLAVE</button>
-            <input type="text" id="input-api-key" class="auth-input" placeholder="Pegar AIzaSy...">
-            <div class="flex gap-2 mt-4">
-                <button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button>
-                <button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-3 bg-blue-600 text-xs text-white rounded-lg font-bold">VALIDAR</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DICCIONARIO -->
-    <div id="modal-dictionary" class="modal-overlay" style="z-index: 5000;">
-        <div class="modal-box mt-24" style="max-width: 500px;">
-            <h3 class="text-green-400 font-bold mb-4 tracking-widest">BANCO DE PALABRAS</h3>
-            <p class="text-[10px] text-gray-500 mb-4">Vocabulario activo de la entidad:</p>
-            <div id="word-list-container" class="word-list border border-gray-800 p-2 rounded h-64 bg-black overflow-y-auto"></div>
-            <button onclick="document.getElementById('modal-dictionary').classList.remove('active')" class="w-full mt-4 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button>
-        </div>
-    </div>
-
-    <!-- 3. MENU -->
+    <!-- MENU -->
     <div id="s-menu" class="screen">
         <div class="text-center mb-10 relative w-full">
             <img src="obr-logo.png" class="w-24 mx-auto mb-3">
             <div id="menu-status" class="text-[10px] text-green-400 font-bold tracking-[3px] border border-green-900 px-3 py-1 rounded-full inline-block bg-green-900/20">CONECTADO</div>
             <div id="btn-api-config" onclick="openApiSettings()"><i class="fas fa-cog"></i></div>
         </div>
-
-        <div class="app-btn" onclick="setMode('mic')">
+        <div id="btn-mic" class="app-btn" onclick="setMode('mic')">
             <i class="fas fa-microphone-lines text-2xl text-cyan-400"></i>
-            <div><div class="font-bold text-sm">MICRÓFONO PRO</div><div class="text-[10px] text-gray-400">Audio Puro</div></div>
+            <div><div class="font-bold text-sm">MICRÓFONO PRO</div><div id="mic-status" class="text-[10px] text-gray-400">Audio Puro</div></div>
         </div>
-
         <div id="btn-spirit" class="app-btn red locked" onclick="setMode('spirit')">
             <i class="fas fa-ghost text-2xl text-red-500"></i>
             <div>
                 <div class="font-bold text-sm">SPIRIT BOX AI</div>
-                <div id="spirit-status" class="text-[10px] text-red-400 font-bold flex items-center gap-2 mt-1">
-                    <i class="fas fa-lock"></i> SIN API KEY
-                </div>
+                <div id="spirit-status" class="text-[10px] text-red-400 font-bold flex items-center gap-2 mt-1"><i class="fas fa-lock"></i> SIN API KEY</div>
             </div>
         </div>
     </div>
 
-    <!-- 4. LIVE INTERFACE -->
+    <!-- LIVE -->
     <div id="s-live" class="screen">
         <div class="status-bar">
             <div class="status-indicator">
@@ -304,50 +271,38 @@
         <div id="btn-dictionary" onclick="openDictionary()"><i class="fas fa-book"></i></div>
 
         <!-- UI MIC -->
-        <div id="ui-mic" class="hidden flex flex-col items-center justify-center h-full w-full">
-             <!-- Limpio -->
-        </div>
-
-        <!-- UI SPIRIT -->
-        <div id="ui-spirit" class="hidden w-full h-full relative">
-            <div id="spirit-text"></div>
-            <div class="invoke-container">
-                <button id="invoke-btn" class="invoke-btn" onpointerdown="startListening()" onpointerup="stopListening()" oncontextmenu="return false;" disabled>
-                    <i id="invoke-icon" class="fas fa-fingerprint"></i>
-                </button>
-                <div id="invoke-label">INICIANDO...</div>
+        <div id="ui-mic-overlay">
+            <div class="w-48 h-48 rounded-full border-4 border-cyan-500 flex items-center justify-center bg-cyan-500/10 shadow-[0_0_80px_rgba(0,243,255,0.4)] animate-pulse">
+                <i class="fas fa-microphone text-7xl text-cyan-400"></i>
             </div>
+            <p class="mt-8 text-cyan-300 text-sm font-mono tracking-widest">TRANSMITIENDO AUDIO</p>
+        </div>
+        
+        <div id="spirit-text"></div>
+        <div class="invoke-container">
+            <button id="invoke-btn" class="invoke-btn" onpointerdown="startListening()" onpointerup="stopListening()" oncontextmenu="return false;" disabled>
+                <i id="invoke-icon" class="fas fa-fingerprint"></i>
+            </button>
+            <div id="invoke-label">INICIANDO...</div>
+        </div>
+        
+        <div id="btn-toggle-mode" onclick="toggleSpiritVox()">
+            <i class="fas fa-ghost" id="toggle-icon"></i>
         </div>
         
         <video id="keep-alive-video" playsinline autoplay muted loop style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;"></video>
-        
-        <!-- ELEMENTO DE AUDIO DE FONDO -->
-        <!-- No autoplay aqui, se activa en JS -->
+        <!-- AUDIO FONDO -->
+        <audio id="bg-noise" src="FONDO_1.mp3" loop></audio>
     </div>
 
-    <!-- MODAL FOTO SEMILLA -->
+    <!-- FOTO -->
     <div id="modal-photo" class="modal-overlay" style="z-index: 3000;">
         <div class="modal-box">
             <h3 class="text-red-500 font-bold mb-2 font-creepy tracking-widest text-xl">CALIBRAR ENTORNO</h3>
-            <p class="text-[10px] text-gray-400 mb-4">Toma una foto del lugar para generar el banco de palabras.</p>
-            
-            <div class="cam-preview-box" style="width:100%; height:200px; background:#000; border:1px solid #333; margin-bottom:15px; border-radius:10px; overflow:hidden; position:relative;">
-                <video id="seed-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-                    <div class="w-10 h-10 border-2 border-red-500 rounded-full"></div>
-                    <div class="absolute w-full h-[1px] bg-red-500"></div>
-                    <div class="absolute h-full w-[1px] bg-red-500"></div>
-                </div>
-            </div>
-            
-            <div class="photo-btn" onclick="captureAndAnalyze()">
-                <i class="fas fa-camera text-2xl"></i>
-                <span>ESCANEAR AHORA</span>
-            </div>
-            
-            <div id="loading-spinner"></div>
-            <div id="photo-status" class="text-xs text-yellow-500 mt-2 h-4 text-center font-mono"></div>
-
+            <p class="text-[10px] text-gray-400 mb-4">Toma una foto para generar el banco de palabras.</p>
+            <div class="relative w-full h-48 bg-black rounded-lg overflow-hidden mb-4 border border-gray-800 shadow-[0_0_20px_rgba(255,0,0,0.2)]"><video id="seed-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video></div>
+            <div class="photo-btn" onclick="captureAndAnalyze()"><i class="fas fa-camera text-2xl"></i><span>ESCANEAR AHORA</span></div>
+            <div id="loading-spinner"></div><div id="photo-status" class="text-xs text-yellow-500 mt-2 h-4 text-center font-mono"></div>
             <button onclick="closePhotoModal()" class="mt-4 text-xs text-gray-500 underline">CANCELAR</button>
         </div>
     </div>
@@ -355,33 +310,96 @@
 <script>
     let GEMINI_API_KEY = localStorage.getItem('obr_api_key_mic') || "";
     let stream, peer, conn, hostId;
-    // AUDIO CONTEXT PARA RUTEO AVANZADO
     let audioCtx, destNode, micSource, micGainNode, bgSourceNode, bgGainNode;
-    
-    let recognition, isProcessing=false;
-    let autoSpiritInterval;
-    let isStandalone = false;
-    let currentPitch = 0.5; let currentRate = 0.8;
-    // BANCO DE RESPALDO
+    let recognition, isProcessing=false, autoSpiritInterval, isStandalone=false;
+    let currentPitch = 0.5, currentRate = 0.8;
     let spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA"];
-    let isCalibrated = false;
-    let isFallbackMode = false;
-    let speechTimeout; 
+    let isCalibrated = false, isFallbackMode = false, speechTimeout; 
+    let isSpiritVoxActive = true; 
 
-    // 1. SYSTEM START
+    function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    
+    function updateStatusUI(online) {
+        const dot = document.querySelector('.status-indicator .dot');
+        const txt = document.querySelector('.status-indicator span');
+        const menuStat = document.getElementById('menu-status');
+        if(online) {
+            if(dot) dot.className = "dot online"; if(txt) { txt.innerText = "EN VIVO"; txt.style.color="#00ff41"; }
+            if(menuStat) { menuStat.innerText = "CONECTADO"; menuStat.style.color="#00ff41"; menuStat.style.borderColor = "#00ff41"; }
+        } else {
+            if(dot) dot.className = "dot offline"; if(txt) { txt.innerText = "OFFLINE"; txt.style.color="#ff0055"; }
+            if(menuStat) { menuStat.innerText = "MODO OFFLINE"; menuStat.style.color="#ffae00"; menuStat.style.borderColor = "#ffae00"; }
+        }
+    }
+    
+    function updateMenuAccess() {
+        const btnMic = document.getElementById('btn-mic');
+        const micStatus = document.getElementById('mic-status');
+        if(isStandalone) {
+            btnMic.classList.add('locked');
+            micStatus.innerHTML = '<i class="fas fa-wifi"></i> REQUIERE CONEXIÓN';
+            micStatus.style.color = "#ff3333";
+        } else {
+            btnMic.classList.remove('locked');
+            micStatus.innerText = "Audio Puro";
+            micStatus.style.color = "#9ca3af";
+        }
+        updateApiStatus(GEMINI_API_KEY ? true : null);
+    }
+
+    function updateApiStatus(isValid) {
+        const btn = document.getElementById('btn-spirit');
+        const status = document.getElementById('spirit-status');
+        if(!btn || !status) return;
+        if(isValid === true) {
+            btn.classList.remove('locked'); status.innerHTML = "LISTO"; status.style.color = "#00ff41";
+        } else if (isValid === false) {
+            btn.classList.add('locked'); status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ERROR API'; status.style.color = "#ff3333";
+        } else if (isValid === undefined) {
+             btn.classList.add('locked'); status.innerHTML = '<i class="fas fa-sync fa-spin"></i> VERIFICANDO...'; status.style.color = "#ffae00";
+        } else {
+             btn.classList.add('locked'); status.innerHTML = '<i class="fas fa-lock"></i> REQUIERE API KEY'; status.style.color = "#aaa";
+        }
+    }
+
+    function speakWithEcho(text) {
+        if('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            if(bgGainNode) bgGainNode.gain.value = 0.2;
+            const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = 0.8;
+            const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.3; u2.rate = 0.7; u2.volume = 0.2; 
+            window.speechSynthesis.speak(u1); setTimeout(()=>window.speechSynthesis.speak(u2), 50);
+            setTimeout(() => { if(!isProcessing && isSpiritVoxActive && bgGainNode) bgGainNode.gain.value = 1.0; }, 2500);
+        }
+    }
+
+    function triggerGreenPulse() {
+        const btn = document.getElementById('invoke-btn');
+        if(btn) { btn.classList.add('success'); setTimeout(() => btn.classList.remove('success'), 600); }
+    }
+    
+    function updateLog() {} 
+
+    window.onload = async () => {
+        const btn = document.getElementById('btn-enter-system');
+        if(btn) {
+             btn.disabled = true; btn.innerText = "CARGANDO..."; btn.style.opacity = "0.5";
+             try {
+                setTimeout(() => {
+                    btn.disabled = false; btn.innerText = "INGRESAR AL SISTEMA"; btn.style.opacity = "1";
+                }, 500);
+             } catch(e) { btn.innerText = "REINTENTAR"; btn.disabled = false; }
+        }
+    };
+
     async function startSystem() {
         if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
-        
         try {
-            // Pedir Audio y Video
             stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, 
                 video: {facingMode: { exact: "environment" }, width:{ideal:1280}, height:{ideal:720}} 
-            }).catch(async () => {
-                return await navigator.mediaDevices.getUserMedia({ audio: true, video: {facingMode: "environment"} });
-            });
+            }).catch(async () => { return await navigator.mediaDevices.getUserMedia({ audio: true, video: {facingMode: "environment"} }); });
 
-            // Configurar Videos
             document.getElementById('scan-video').srcObject = stream;
             document.getElementById('cam-video-bg').srcObject = stream;
             document.getElementById('keep-alive-video').srcObject = stream;
@@ -390,8 +408,10 @@
             document.getElementById('scan-video').play();
             document.getElementById('cam-video-bg').play();
             
-            // Inicializar Audio Context para ruteo
-            initAudioContext();
+            const bg = document.getElementById('bg-noise');
+            if(bg) { bg.volume = 0.1; await bg.play().then(()=>bg.pause()).catch(()=>{}); }
+            
+            initAudioContext(); 
 
             if('geolocation' in navigator) {
                 navigator.geolocation.watchPosition(p => {
@@ -404,61 +424,41 @@
             else updateApiStatus(null);
 
             show('s-scan'); scanQR();
-        } catch(e) { alert("Error Permisos: " + e.message); }
+        } catch(e) { alert("Error: " + e.message); }
     }
-
-    // --- AUDIO CONTEXT SETUP (NUEVO CORE) ---
+    
     function initAudioContext() {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AudioContext();
-        
-        // Nodo Destino para PeerJS (lo que se envia al detector)
         destNode = audioCtx.createMediaStreamDestination();
         
-        // 1. Configurar Microfono
-        // Usamos el stream de audio que ya pedimos
         micSource = audioCtx.createMediaStreamSource(stream);
         micGainNode = audioCtx.createGain();
-        micGainNode.gain.value = 0; // MUTEADO POR DEFECTO
-        
-        // Ruteo Mic: Mic -> Gain -> Destino (Peer)
+        micGainNode.gain.value = 0; 
         micSource.connect(micGainNode);
         micGainNode.connect(destNode);
         
-        // 2. Configurar Fondo (Spirit Box)
-        // Creamos el elemento de audio dinamicamente para control total
-        const bgAudioEl = new Audio('FONDO_1.mp3');
-        bgAudioEl.loop = true;
-        bgAudioEl.crossOrigin = "anonymous";
-        
+        const bgAudioEl = document.getElementById('bg-noise');
         bgSourceNode = audioCtx.createMediaElementSource(bgAudioEl);
         bgGainNode = audioCtx.createGain();
-        bgGainNode.gain.value = 1.0; // Volumen Maximo
+        bgGainNode.gain.value = 1.0;
         
-        // Ruteo Fondo: Fondo -> Gain -> Destino (Peer) Y Altavoz Local
         bgSourceNode.connect(bgGainNode);
-        bgGainNode.connect(destNode); // Enviar al detector
-        bgGainNode.connect(audioCtx.destination); // Escuchar en celular
+        bgGainNode.connect(destNode); 
+        bgGainNode.connect(audioCtx.destination); 
         
-        // Guardar referencia para play/pause
         window.bgAudioElement = bgAudioEl;
     }
 
-    // 2. AUTH & QR
     function openAuthModal() { document.getElementById('modal-auth').classList.add('active'); }
     function closeAuthModal() { document.getElementById('modal-auth').classList.remove('active'); }
     function checkAuth() {
         if(document.getElementById('auth-pass').value === "OBR1995@") {
-            isStandalone = true;
-            closeAuthModal();
-            updateStatusUI(false);
-            show('s-menu');
-        } else alert("ACCESO DENEGADO");
+            isStandalone = true; closeAuthModal(); updateStatusUI(false); updateMenuAccess(); show('s-menu');
+        } else alert("Error");
     }
-
     function scanQR() {
-        const v = document.getElementById('scan-video');
-        const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
+        const v = document.getElementById('scan-video'); const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
         function loop() {
             if(isStandalone) return;
             if(v.readyState===4 && document.getElementById('s-scan').classList.contains('active')) {
@@ -469,256 +469,136 @@
             requestAnimationFrame(loop);
         } loop();
     }
-
     function link(id) {
-        hostId = id; isStandalone = false;
-        peer = new Peer();
-        peer.on('open', () => { 
-            updateStatusUI(true); 
-            if(GEMINI_API_KEY) validateApiKey(GEMINI_API_KEY);
-            else updateApiStatus(null);
-            show('s-menu'); 
-        });
+        hostId = id; isStandalone = false; peer = new Peer();
+        peer.on('open', () => { updateStatusUI(true); updateMenuAccess(); if(GEMINI_API_KEY) validateApiKey(GEMINI_API_KEY); show('s-menu'); });
         peer.on('error', () => { updateStatusUI(false); alert("Error Red"); location.reload(); });
         peer.on('disconnected', () => updateStatusUI(false));
-        
-        // IMPORTANTE: Al conectar, si ya tenemos audio context, hacer la llamada
         if(destNode) makeCall();
     }
-    
-    function makeCall() {
-        if(!peer || !hostId || !destNode) return;
-        const call = peer.call(hostId, destNode.stream);
-    }
+    function makeCall() { if(!peer || !hostId || !destNode) return; peer.call(hostId, destNode.stream); }
 
-    function updateStatusUI(online) {
-        const dot = document.querySelector('.status-indicator .dot');
-        const txt = document.querySelector('.status-indicator span');
-        const menuStat = document.getElementById('menu-status');
-        if(online) {
-            dot.className = "dot online"; txt.innerText = "EN VIVO"; txt.style.color="#00ff41";
-            menuStat.innerText = "CONECTADO"; menuStat.style.color="#00ff41";
-            menuStat.style.borderColor = "#00ff41";
-        } else {
-            dot.className = "dot offline"; txt.innerText = "OFFLINE"; txt.style.color="#ff0055";
-            menuStat.innerText = "MODO OFFLINE"; menuStat.style.color="#ffae00";
-            menuStat.style.borderColor = "#ffae00";
-        }
-    }
-
-    // 3. API VALIDATION
-    function openApiSettings() {
-        document.getElementById('input-api-key').value = GEMINI_API_KEY;
-        document.getElementById('modal-api').classList.add('active');
-    }
-    
+    function openApiSettings() { document.getElementById('input-api-key').value = GEMINI_API_KEY; document.getElementById('modal-api').classList.add('active'); }
     async function saveApiKey() {
         const key = document.getElementById('input-api-key').value.trim();
         if(key.length > 10) {
-            localStorage.setItem('obr_api_key_mic', key);
-            GEMINI_API_KEY = key;
+            localStorage.setItem('obr_api_key_mic', key); GEMINI_API_KEY = key;
             document.getElementById('modal-api').classList.remove('active');
-            updateApiStatus(undefined); 
-            validateApiKey(key);
-            alert("LLAVE GUARDADA");
+            updateApiStatus(undefined); validateApiKey(key); alert("GUARDADO");
         }
     }
-    
     async function validateApiKey(key) {
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: "Ping" }] }] })
-            });
-            if(response.ok) updateApiStatus(true); else updateApiStatus(false);
+            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: "Ping" }] }] }) });
+            if(r.ok) updateApiStatus(true); else updateApiStatus(false);
         } catch(e) { updateApiStatus(false); }
     }
-    
-    function updateApiStatus(isValid) {
-        const btn = document.getElementById('btn-spirit');
-        const status = document.getElementById('spirit-status');
-        if(!btn || !status) return;
 
-        if(isValid === true) {
-            btn.classList.remove('locked'); btn.onclick = () => checkSpiritMode(); 
-            status.innerHTML = "LISTO"; status.style.color = "#00ff41";
-        } else if (isValid === false) {
-            btn.classList.add('locked'); btn.onclick = null;
-            status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ERROR API'; status.style.color = "#ff3333";
-        } else if (isValid === undefined) {
-             btn.classList.add('locked'); btn.onclick = null;
-             status.innerHTML = '<i class="fas fa-sync fa-spin"></i> VERIFICANDO...'; status.style.color = "#ffae00";
+    function setMode(m) {
+        if(m === 'mic' && isStandalone) { alert("No disponible en modo offline"); return; }
+        if(m === 'spirit' && !GEMINI_API_KEY) { openApiSettings(); return; }
+        if(m === 'spirit' && document.getElementById('btn-spirit').classList.contains('locked')) return;
+        
+        if(m === 'spirit') {
+             document.getElementById('modal-photo').classList.add('active');
+             document.getElementById('seed-video').play();
         } else {
-             btn.classList.add('locked'); btn.onclick = null;
-             status.innerHTML = '<i class="fas fa-lock"></i> REQUIERE API KEY'; status.style.color = "#aaa";
-        }
-    }
-
-    // 4. MODE LOGIC
-    function checkSpiritMode() {
-        if(!document.getElementById('btn-spirit').classList.contains('locked')) {
-            document.getElementById('modal-photo').classList.add('active');
+             isSpiritVoxActive = false;
+             updateToggleUI();
+             show('s-live');
         }
     }
     function closePhotoModal() { document.getElementById('modal-photo').classList.remove('active'); }
-
+    
     async function captureAndAnalyze() {
-        const status = document.getElementById('photo-status');
-        const spinner = document.getElementById('loading-spinner');
-        const videoPreview = document.getElementById('seed-video');
-        
-        if(!videoPreview.videoWidth) { status.innerText = "ESPERA A LA CAMARA..."; return; }
-
+        const status = document.getElementById('photo-status'); const spinner = document.getElementById('loading-spinner'); const videoPreview = document.getElementById('seed-video');
+        if(!videoPreview.videoWidth) return;
         status.innerText = "ANALIZANDO..."; spinner.style.display = 'block';
-        setDictionaryState('loading');
-        
         const cvs = document.createElement('canvas'); cvs.width = 640; cvs.height = 480;
         cvs.getContext('2d').drawImage(videoPreview, 0, 0, 640, 480);
         const b64 = cvs.toDataURL('image/jpeg', 0.6).split(',')[1];
-        
         const apiCall = new Promise(async (resolve, reject) => {
             try {
                 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                     method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        contents:[{parts:[{text: "Genera una lista de 100 PALABRAS SUELTAS en mayúsculas separadas por '|' sobre lo que ves en la imagen (muebles, luz, objetos) y palabras de terror."}, {inline_data:{mime_type:"image/jpeg",data:b64}}]}]
-                    })
+                    body:JSON.stringify({contents:[{parts:[{text: "100 PALABRAS SUELTAS mayúsculas separadas por '|'. Muebles, objetos, terror."}, {inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
                 });
-                const d = await r.json();
-                const rawText = d.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                if(rawText) {
-                    spiritScript = rawText.split('|').map(s => s.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ]/g, '')).filter(s => s.length > 2);
-                    isFallbackMode = false; resolve();
-                } else reject("Empty");
+                const d = await r.json(); const raw = d.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                if(raw) { spiritScript = raw.split('|').map(s => s.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ]/g, '')).filter(s => s.length > 2); isFallbackMode = false; resolve(); } else reject("Empty");
             } catch(e) { reject(e); }
         });
-
         const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 5000));
-
-        try {
-            await Promise.race([apiCall, timeout]);
-            status.innerText = "LISTO";
-            setDictionaryState('success');
-        } catch(e) {
-            console.log("Fallback Local");
-            spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA"];
-            isFallbackMode = true;
-            setDictionaryState('success');
-        } finally {
-            isCalibrated = true;
-            populateDictionary(); 
-            setTimeout(() => {
-                closePhotoModal();
-                setMode('spirit');
-            }, 1000);
+        try { await Promise.race([apiCall, timeout]); } catch(e) { isFallbackMode = true; }
+        finally {
+            isCalibrated = true; populateDictionary();
+            setTimeout(() => { document.getElementById('modal-photo').classList.remove('active'); switchToSpiritMode(); }, 1000);
         }
     }
     
-    function populateDictionary() {
-        const container = document.getElementById('word-list-container');
-        container.innerHTML = "";
-        spiritScript.forEach(word => {
-            const sp = document.createElement('div'); 
-            sp.innerText = word; sp.className="word-item text-cyan-400 font-mono"; 
-            container.appendChild(sp);
-        });
-    }
-
-    function setDictionaryState(state) {
-        const btn = document.getElementById('btn-dictionary');
-        btn.className = ""; btn.style.display = "block";
-        if(state === 'loading') btn.classList.add('loading');
-        else if (state === 'success') { btn.classList.add('success'); setTimeout(() => btn.className = "", 1000); }
-    }
-
-    function openDictionary() { document.getElementById('modal-dictionary').classList.add('active'); }
-
-    function setMode(m) {
-        const uiMic = document.getElementById('ui-mic');
-        const uiSpirit = document.getElementById('ui-spirit');
-        const camBg = document.getElementById('cam-video-bg');
-        const filter = document.getElementById('cam-filter-layer');
-        const overlay = document.getElementById('bg-overlay');
-        const dictBtn = document.getElementById('btn-dictionary');
-
-        uiMic.classList.add('hidden'); uiSpirit.classList.add('hidden');
-        camBg.style.display = 'none'; filter.style.display = 'none';
-        overlay.style.opacity = '0.85';
-        clearInterval(autoSpiritInterval);
-        dictBtn.style.display = 'none';
-        
-        // RESET AUDIO
-        window.bgAudioElement.pause();
-
-        if(m === 'mic') {
-            uiMic.classList.remove('hidden');
-            overlay.style.opacity = '0.5'; 
-            
-            // En mic mode, el mic siempre esta abierto
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            micGainNode.gain.value = 1.0;
-            
-        } else {
-            uiSpirit.classList.remove('hidden');
-            camBg.style.display = 'block'; 
-            filter.style.display = 'block'; 
-            overlay.style.opacity = '0';
-            
-            document.getElementById('bg-static').style.display = 'none';
-            
-            // AUDIO CONFIG FOR SPIRIT
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            micGainNode.gain.value = 0; // Mute mic initially
-            window.bgAudioElement.play(); // Play background
-            
-            initSpeech();
-            
-            triggerGreenPulse(); 
-            enableButton(); // BLANCO
-            startPassiveLoop(); // INICIAR BUCLE
-            
-            document.getElementById('btn-dictionary').style.display = 'block';
-        }
-        
-        if(!isStandalone && peer && destNode) {
-             // Ensure peer call is active
-             makeCall();
-        }
-        
+    function switchToSpiritMode() {
+        isSpiritVoxActive = true;
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        updateToggleUI();
+        initSpeech();
+        enableButton();
         show('s-live');
     }
-
-    function triggerGreenPulse() {
-        const btn = document.getElementById('invoke-btn');
-        btn.classList.add('success'); 
-        setTimeout(() => btn.classList.remove('success'), 600); 
+    
+    function toggleSpiritVox() {
+        isSpiritVoxActive = !isSpiritVoxActive;
+        updateToggleUI();
     }
 
-    // 5. SPIRIT LOGIC
+    function updateToggleUI() {
+        const btnToggle = document.getElementById('btn-toggle-mode');
+        const icon = document.getElementById('toggle-icon');
+        const uiSpirit = document.querySelector('.invoke-container');
+        const uiMic = document.getElementById('ui-mic-overlay');
+        const camBg = document.getElementById('cam-video-bg');
+        const bgStatic = document.getElementById('bg-static');
+        const dict = document.getElementById('btn-dictionary');
+        const bgAudio = document.getElementById('bg-noise');
+
+        if(isSpiritVoxActive) {
+            icon.className = "fas fa-ghost"; btnToggle.classList.remove('mic-active');
+            uiSpirit.style.opacity = '1'; uiSpirit.style.pointerEvents = 'auto'; uiMic.classList.remove('active');
+            document.getElementById('spirit-text').style.display = 'block';
+            camBg.style.display = 'block'; bgStatic.style.opacity = '0';
+            bgAudio.play(); micGainNode.gain.value = 0;
+            startPassiveLoop(); dict.style.display = 'block';
+        } else {
+            icon.className = "fas fa-microphone"; btnToggle.classList.add('mic-active');
+            uiSpirit.style.opacity = '0'; uiSpirit.style.pointerEvents = 'none'; uiMic.classList.add('active');
+            document.getElementById('spirit-text').style.display = 'none';
+            camBg.style.display = 'none'; bgStatic.style.opacity = '1';
+            bgAudio.pause(); micGainNode.gain.value = 1.0;
+            clearInterval(autoSpiritInterval); dict.style.display = 'none';
+        }
+    }
+
+    function populateDictionary() { const c = document.getElementById('word-list-container'); c.innerHTML = ""; spiritScript.forEach(w => { const s = document.createElement('div'); s.innerText = w; s.className="word-item text-cyan-400 font-mono"; c.appendChild(s); }); }
+    function openDictionary() { document.getElementById('modal-dictionary').classList.add('active'); }
+
     function enableButton() {
-        const btn = document.getElementById('invoke-btn');
-        const label = document.getElementById('invoke-label');
-        btn.disabled = false; label.innerText = "PULSA PARA PREGUNTAR"; label.style.color="#fff";
-        btn.className = 'invoke-btn ready';
+        const btn = document.getElementById('invoke-btn'); const label = document.getElementById('invoke-label');
+        btn.disabled = false; label.innerText = "PULSA PARA PREGUNTAR"; label.style.color="#fff"; btn.className = 'invoke-btn ready';
+        triggerGreenPulse();
     }
+    function triggerGreenPulse() { const b=document.getElementById('invoke-btn'); b.classList.add('success'); setTimeout(()=>b.classList.remove('success'),600); }
 
     function startPassiveLoop() {
         clearInterval(autoSpiritInterval);
         autoSpiritInterval = setInterval(() => {
-            if(!isProcessing && document.getElementById('s-live').style.display === 'flex') {
-                triggerRandomWord();
-            }
+            if(!isProcessing && isSpiritVoxActive) triggerRandomWord();
         }, 4000 + Math.random()*4000); 
     }
     
     function triggerRandomWord() {
-        if(spiritScript.length === 0) return;
+        if(!spiritScript || spiritScript.length===0) return;
         const word = spiritScript[Math.floor(Math.random() * spiritScript.length)];
-        
-        // No usamos oscilador ya, el fondo es suficiente
         const txt = document.getElementById('spirit-text');
         txt.innerText = word.toUpperCase(); txt.style.opacity = 1;
-        speakWithEcho(word); 
+        speakWithEcho(word);
         setTimeout(()=> txt.style.opacity=0, 3000);
     }
 
@@ -731,106 +611,53 @@
     }
 
     function startListening() {
-        if(isProcessing) return;
+        if(isProcessing || !isSpiritVoxActive) return;
         isProcessing = true;
         clearInterval(autoSpiritInterval); 
-        
-        // UNMUTE MIC
-        micGainNode.gain.value = 1.0;
-        // DUCK BG
-        bgGainNode.gain.value = 0.2;
-        
+        micGainNode.gain.value = 1.0; bgGainNode.gain.value = 0.2; 
         const btn = document.getElementById('invoke-btn');
-        btn.classList.remove('ready'); btn.classList.add('listening');
-        document.getElementById('invoke-label').innerText = "ESCUCHANDO...";
-        document.getElementById('invoke-label').style.color = "#00ff41";
-        
-        if(recognition) recognition.start();
-        else triggerRealtimeAI("");
+        btn.classList.remove('ready'); btn.classList.add('listening'); 
+        document.getElementById('invoke-label').innerText = "ESCUCHANDO..."; document.getElementById('invoke-label').style.color = "#00ff41";
+        recognition.start();
     }
 
     function stopListening() {
-        if(recognition) recognition.stop();
+        recognition.stop();
         const btn = document.getElementById('invoke-btn');
-        btn.classList.remove('listening'); btn.classList.add('locked'); 
-        btn.disabled = true;         
-        document.getElementById('invoke-label').innerText = "ANALIZANDO...";
-        document.getElementById('invoke-label').style.color = "#ffae00";
-        
-        // MUTE MIC ASAP
-        micGainNode.gain.value = 0;
-        
-        // WATCHDOG
+        btn.classList.remove('listening'); btn.classList.add('locked'); btn.disabled = true;         
+        document.getElementById('invoke-label').innerText = "ANALIZANDO..."; document.getElementById('invoke-label').style.color = "#ffae00";
+        micGainNode.gain.value = 0; 
         speechTimeout = setTimeout(() => {
-            if(document.getElementById('spirit-text').innerText === "..." || document.getElementById('spirit-text').style.opacity === '0') {
-                triggerRandomWord(); 
-                resetUIState();
-            }
+            if(isProcessing) { triggerRandomWord(); resetUIState(); }
         }, 2000);
     }
 
     async function triggerRealtimeAI(question) {
         clearTimeout(speechTimeout);
-        const txt = document.getElementById('spirit-text');
-        txt.innerText = "..."; txt.style.opacity = 1;
-
-        if(!question || question.length < 2) {
-             triggerRandomWord(); resetUIState(); return;
-        }
-
+        const txt = document.getElementById('spirit-text'); txt.innerText = "..."; txt.style.opacity = 1;
+        if(!question || question.length < 2) { triggerRandomWord(); resetUIState(); return; }
         try {
-            const cvs = document.createElement('canvas');
-            const vid = document.getElementById('cam-video-bg'); 
-            cvs.width = 640; cvs.height = 480;
-            cvs.getContext('2d').drawImage(vid, 0, 0, 640, 480);
+            const cvs = document.createElement('canvas'); const vid = document.getElementById('cam-video-bg'); 
+            cvs.width = 640; cvs.height = 480; if(isSpiritVoxActive) cvs.getContext('2d').drawImage(vid, 0, 0, 640, 480);
             const b64 = cvs.toDataURL('image/jpeg', 0.5).split(',')[1];
-
             const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({contents:[{parts:[{text: `Rol: Espíritu humano real. Pregunta: "${question}". Responde con UN NOMBRE COMÚN (ej: Pedro, Maria) o UN HECHO FÍSICO (ej: Dolor, Caída, Frio). Máximo 2 palabras. NADA POÉTICO.`},{inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
+                body:JSON.stringify({contents:[{parts:[{text: `Rol: Espíritu humano real. Pregunta: "${question}". Responde directo. Max 2 palabras.`},{inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
             });
-            
-            const d = await r.json();
-            const ans = d.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            if(ans) {
-                txt.innerText = ans.toUpperCase();
-                speakWithEcho(ans);
-            } else throw new Error("No text");
-
-        } catch(e) { 
-            triggerRandomWord(); 
-        }
-        
+            const d = await r.json(); const ans = d.candidates?.[0]?.content?.parts?.[0]?.text;
+            if(ans) { txt.innerText = ans.toUpperCase(); speakWithEcho(ans); } else throw new Error("No text");
+        } catch(e) { triggerRandomWord(); }
         setTimeout(resetUIState, 4000); 
     }
     
     function resetUIState() {
-        isProcessing = false; 
-        bgGainNode.gain.value = 1.0; // RESTORE BG
+        isProcessing = false; if(isSpiritVoxActive) bgGainNode.gain.value = 1.0; 
         document.getElementById('spirit-text').style.opacity = 0;
-        enableButton(); 
-        startPassiveLoop();
+        enableButton(); startPassiveLoop();
     }
-
-    // UTILS
-    function speakWithEcho(text) {
-        if('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            // Ducking
-            bgGainNode.gain.value = 0.2;
-            
-            const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = 0.8;
-            const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.3; u2.rate = 0.7; u2.volume = 0.6;
-            window.speechSynthesis.speak(u1);
-            setTimeout(()=>window.speechSynthesis.speak(u2), 120);
-            
-            setTimeout(() => { if(!isProcessing) bgGainNode.gain.value = 1.0; }, 2500);
-        }
-    }
-
-    function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    
     function logout() { if(peer) peer.destroy(); location.reload(); }
+    function loadMemories(){} function initMoveNet(){} function initSensors(){} function fetchRealTemperature(){}
 
 </script>
 </body>
