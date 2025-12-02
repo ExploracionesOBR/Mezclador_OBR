@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>OBR LINK v39.3 FINAL</title>
+    <title>OBR LINK v39.5 FINAL</title>
     
     <link rel="apple-touch-icon" href="obr-logo.png">
     <link rel="icon" type="image/png" href="obr-logo.png">
@@ -23,7 +23,15 @@
     <style>
         :root { --primary: #00f3ff; --secondary: #ff0055; --success: #00ff41; --warn: #ffae00; }
         
-        * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; outline: none; box-sizing: border-box; }
+        /* BLOQUEO TOTAL DE SELECCION EN MOVIL */
+        * { 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none; 
+            -webkit-user-select: none; 
+            user-select: none; 
+            outline: none; 
+            box-sizing: border-box; 
+        }
 
         html, body {
             background-color: #000; color: var(--primary); font-family: 'Orbitron', sans-serif;
@@ -120,6 +128,10 @@
             background: rgba(20,20,20,0.9); color: #555; font-size: 2.5rem; 
             display: flex; align-items: center; justify-content: center; 
             transition: 0.2s; backdrop-filter: blur(4px); 
+            /* PROPIEDADES ANTI SELECCION */
+            touch-action: none; 
+            -webkit-user-select: none;
+            user-select: none;
         }
         .invoke-btn.active { border-color: var(--success); color: var(--success); box-shadow: 0 0 30px var(--success) inset; transform: scale(1.1); }
         
@@ -215,7 +227,7 @@
     <div id="s-login" class="screen active">
         <img src="obr-logo.png" class="w-32 mb-6 animate-pulse" onerror="this.style.display='none'">
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
-        <p class="text-xs text-gray-400 font-mono mb-10">SISTEMA RESTAURADO v39.3</p>
+        <p class="text-xs text-gray-400 font-mono mb-10">SISTEMA RESTAURADO v39.5</p>
         <button id="btn-enter-system" class="app-btn justify-center font-bold tracking-widest" onclick="window.startSystem()">INICIAR SISTEMA</button>
     </div>
 
@@ -430,7 +442,15 @@
             destNode = audioCtx.createMediaStreamDestination();
             if(stream) { micSource = audioCtx.createMediaStreamSource(stream); micGainNode = audioCtx.createGain(); micGainNode.gain.value = 0; micSource.connect(micGainNode); micGainNode.connect(destNode); }
             const bgEl = document.getElementById('bg-noise');
-            if(bgEl) { bgSourceNode = audioCtx.createMediaElementSource(bgEl); bgGainNode = audioCtx.createGain(); bgGainNode.gain.value = 1.0; bgSourceNode.connect(bgGainNode); bgGainNode.connect(destNode); bgGainNode.connect(audioCtx.destination); }
+            if(bgEl) { 
+                bgSourceNode = audioCtx.createMediaElementSource(bgEl); 
+                bgGainNode = audioCtx.createGain(); 
+                // AUMENTO MASIVO DE VOLUMEN (GAIN)
+                bgGainNode.gain.value = 3.0; // ANTES 1.0 -> AHORA 3.0 PARA SATURAR
+                bgSourceNode.connect(bgGainNode); 
+                bgGainNode.connect(destNode); 
+                bgGainNode.connect(audioCtx.destination); 
+            }
             
             document.body.addEventListener('click', function() {
                 if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -800,11 +820,22 @@
     function speakWithEcho(text) {
         if('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            if(bgGainNode) bgGainNode.gain.value = 0.2; 
-            const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = currentRate;
-            const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.2; u2.rate = currentRate - 0.1; u2.volume = 0.4; 
-            window.speechSynthesis.speak(u1); setTimeout(()=>window.speechSynthesis.speak(u2), 100);
-            setTimeout(() => { if(!isProcessing && !isMicMode && bgGainNode) bgGainNode.gain.value = 1.0; }, 3000);
+            
+            // REDUCIR MENOS EL RUIDO DE FONDO (LUCHA POR SALIR)
+            if(bgGainNode) bgGainNode.gain.value = 0.8; // Antes bajaba a 0.2, ahora se queda en 0.8 (fuerte)
+            
+            // CAPA 1: Voz Normal
+            const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = currentRate; u1.volume = 1.0;
+            
+            // CAPA 2: Eco Grave
+            const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = 0.5; u2.rate = 0.9; u2.volume = 1.0; 
+            
+            // SOLO 2 VOCES (Eliminada la 3ra voz gutural)
+            window.speechSynthesis.speak(u1); 
+            window.speechSynthesis.speak(u2);
+
+            // Restaurar ruido al terminar
+            setTimeout(() => { if(!isProcessing && !isMicMode && bgGainNode) bgGainNode.gain.value = 3.0; }, 2500);
         }
     }
     
