@@ -2,19 +2,18 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- VIEWPORT APP NATIVA -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>OBR LINK v36.3 CLEAR VISION</title>
+    <title>OBR LINK v39.3 FINAL</title>
     
     <link rel="apple-touch-icon" href="obr-logo.png">
     <link rel="icon" type="image/png" href="obr-logo.png">
     
+    <!-- LIBRERÍAS EXTERNAS -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,640 +23,792 @@
     <style>
         :root { --primary: #00f3ff; --secondary: #ff0055; --success: #00ff41; --warn: #ffae00; }
         
-        /* RESET TOTAL */
-        * {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            user-select: none;
-            -webkit-user-select: none;
-            outline: none;
-            box-sizing: border-box;
-        }
+        * { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; outline: none; box-sizing: border-box; }
 
         html, body {
-            background-color: #000;
-            color: var(--primary); font-family: 'Orbitron', sans-serif;
-            height: 100dvh; width: 100vw;
-            margin: 0; padding: 0; position: fixed; top: 0; left: 0;
-            touch-action: none; overflow: hidden;
-            overscroll-behavior: none;
+            background-color: #000; color: var(--primary); font-family: 'Orbitron', sans-serif;
+            height: 100dvh; width: 100vw; margin: 0; padding: 0; position: fixed; top: 0; left: 0;
+            touch-action: none; overflow: hidden; overscroll-behavior: none;
         }
 
-        /* ANTI-GIRO */
-        @media screen and (orientation: landscape) {
-            body {
-                transform: rotate(-90deg);
-                transform-origin: left top;
-                width: 100vh; height: 100vw;
-                overflow: hidden; position: absolute;
-                top: 100%; left: 0;
-            }
-        }
-
-        /* FONDOS */
+        /* FONDO ESTÁTICO (Modo Micrófono y Escáner) */
         #bg-static { 
             position: fixed; inset: 0; z-index: -10; 
-            background-image: url('fondo_pantalla.jpg'); 
-            background-size: cover; background-position: center; 
-            transition: opacity 0.5s ease-in-out;
-            opacity: 0; /* Oculto por defecto en modo Spirit */
+            background-image: url('fondo_pantalla.jpg'); background-size: cover; background-position: center; 
+            opacity: 1; transition: opacity 0.5s ease;
         }
         
-        #bg-overlay { 
-            position: absolute; inset: 0; 
-            background: rgba(0,0,0,0.8); /* Mas oscuro para leer mejor */
-            z-index: -5; transition: opacity 0.5s ease; 
-        }
-        
-        /* CAMARA - VISION CLARA CON TINTE VERDE */
+        /* CÁMARA PRINCIPAL (Modo Spirit) */
         #cam-video-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            object-fit: cover; z-index: -15; display: none; 
-            /* Filtro Ligero: Solo un toque de verde y brillo extra para oscuridad */
-            filter: sepia(0.2) hue-rotate(90deg) brightness(1.2) contrast(1.1) saturate(1.2);
-            transform: scale(1.02);
-            transition: opacity 0.5s;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -15;
+            opacity: 0; transition: opacity 0.5s;
+            /* FILTRO NOCTURNO SUTIL */
+            filter: contrast(1.2) brightness(1.1) grayscale(0.8) sepia(0.2); 
         }
-        
-        /* SCANLINES SUTILES (SIN VIÑETA NEGRA) */
-        #cam-filter-layer {
-            position: fixed; inset: 0; z-index: -12; pointer-events: none; display: none;
-            background: repeating-linear-gradient(0deg, rgba(0, 50, 0, 0.05), rgba(0, 50, 0, 0.05) 1px, transparent 1px, transparent 3px);
-            opacity: 0.6;
+
+        /* HUD LAYER */
+        #hud-layer {
+            position: fixed; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; display: none;
+        }
+        .hud-box {
+            position: absolute; border: 2px solid var(--secondary);
+            box-shadow: 0 0 15px var(--secondary), inset 0 0 10px rgba(255, 0, 85, 0.5);
+            animation: aggressiveBlink 0.1s infinite;
+            opacity: 0.8;
+        }
+        @keyframes aggressiveBlink {
+            0% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(1.02); }
+            100% { opacity: 0.8; transform: scale(1); }
         }
 
         .screen { position: fixed; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.3s; width: 100%; height: 100%; }
         .screen.active { display: flex; opacity: 1; z-index: 20; }
 
-        /* BOTONES */
-        .app-btn {
-            background: rgba(0, 0, 0, 0.6); border: 1px solid var(--primary); color: white;
-            padding: 20px; border-radius: 15px; width: 100%; max-width: 320px;
-            display: flex; align-items: center; gap: 15px; cursor: pointer;
-            backdrop-filter: blur(10px); margin-bottom: 15px; transition: 0.2s;
-        }
-        .app-btn:active { transform: scale(0.98); background: var(--primary); color: black; }
+        .app-btn { background: rgba(0,0,0,0.8); border: 1px solid var(--primary); color: white; padding: 20px; border-radius: 15px; width: 80%; max-width: 300px; display: flex; align-items: center; gap: 15px; margin-bottom: 15px; transition: 0.2s; }
+        .app-btn:active { transform: scale(0.96); background: var(--primary); color: black; }
         .app-btn.red { border-color: var(--secondary); }
         .app-btn.red:active { background: var(--secondary); color: white; }
-        .app-btn.locked { opacity: 0.5; filter: grayscale(1); pointer-events: none; border-color: #444; }
+        .app-btn.locked { opacity: 0.4; filter: grayscale(1); pointer-events: none; border-color: #555; }
 
-        .btn-status-indicator { position: absolute; bottom: 5px; right: 10px; font-size: 0.6rem; font-weight: bold; display: flex; align-items: center; gap: 4px; }
-
-        #scan-video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: -1; }
-        .scan-box { width: 250px; height: 250px; border: 4px solid var(--primary); box-shadow: 0 0 30px var(--primary); position: relative; }
-        .scan-line { width: 100%; height: 2px; background: var(--secondary); position: absolute; animation: scan 2s infinite; }
-        @keyframes scan { 0%{top:0} 50%{top:100%} 100%{top:0} }
-
-        #btn-offline-access { position: absolute; top: 20px; right: 20px; z-index: 60; color: rgba(255, 255, 255, 0.3); font-size: 1.2rem; cursor: pointer; padding: 10px; transition: 0.3s; }
-        #btn-offline-access:active { color: var(--primary); opacity: 1; }
-
-        #btn-api-config {
-            position: absolute; top: 20px; right: 20px; z-index: 60;
-            color: #aaa; font-size: 1.2rem; cursor: pointer;
-            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.5); border-radius: 50%; transition: 0.3s;
-            border: 1px solid #444;
+        /* ESCÁNER */
+        #s-scan { background: transparent; }
+        #scan-overlay-dark { position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 0; }
+        
+        #scan-frame {
+            position: relative; width: 280px; height: 280px;
+            border: 3px solid var(--primary); border-radius: 25px;
+            box-shadow: 0 0 30px var(--primary), inset 0 0 30px rgba(0,243,255,0.4);
+            background: rgba(0,0,0,0.5); overflow: hidden; z-index: 10;
         }
-        #btn-api-config:active { color: white; background: var(--secondary); transform: rotate(90deg); }
-
-        .modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(5px); display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
-        .modal-box { background: #111; border: 1px solid var(--secondary); padding: 20px; border-radius: 10px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 0 30px rgba(255, 0, 85, 0.1); position: relative; }
-        .auth-input { background: #222; border: 1px solid #444; color: white; width: 100%; padding: 12px; margin: 15px 0; text-align: center; font-family: 'Orbitron'; outline: none; font-size: 0.9rem; }
+        #scan-video { width: 100%; height: 100%; object-fit: cover; opacity: 1; }
         
-        .photo-btn { background: var(--secondary); color: white; font-weight: bold; padding: 15px; width: 100%; border-radius: 10px; margin-top: 10px; display: flex; justify-content: center; gap: 10px; align-items: center; cursor: pointer; }
+        .scan-laser {
+            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: var(--secondary); box-shadow: 0 0 20px var(--secondary);
+            animation: laserScan 1.5s infinite linear; z-index: 11;
+        }
+        @keyframes laserScan { 0% { top: 0; opacity:0; } 10% { opacity:1; } 90% { opacity:1; } 100% { top: 100%; opacity:0; } }
 
-        .status-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; display: flex; justify-content: space-between; align-items: flex-start; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); z-index: 50; pointer-events: none; }
-        .status-bar button { pointer-events: auto; }
-        
-        .status-indicator { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px; border: 1px solid #333; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
-        .dot.online { background: var(--success); box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
-        .dot.offline { background: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        /* UI ELEMENTS */
+        .status-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; display: flex; justify-content: space-between; z-index: 50; background: linear-gradient(to bottom, black, transparent); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; display: inline-block; margin-right: 5px; }
+        .dot.online { background: var(--success); box-shadow: 0 0 10px var(--success); animation: blink 2s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
 
-        .invoke-container { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; transition: opacity 0.5s; }
-        .invoke-container.hidden-mode { opacity: 0; pointer-events: none; }
-        
-        /* BOTON HUELLA */
+        /* CONFIG BTN */
+        #btn-api-config-menu {
+            position: absolute; top: 20px; right: 20px; 
+            font-size: 1.5rem; color: #aaa; 
+            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 50%; border: 1px solid #444;
+            z-index: 60; cursor: pointer;
+        }
+
+        #btn-wordbank {
+            position: absolute; top: 100px; right: 20px; z-index: 60; font-size: 1.2rem;
+            padding: 12px; border-radius: 50%; background: rgba(0,0,0,0.6);
+            transition: all 0.3s; border: 1px solid #555; color: white; opacity: 0.6; display: none;
+        }
+        #btn-wordbank.loading { border-color: var(--warn); color: var(--warn); animation: pulseOrange 0.5s infinite; opacity: 1; }
+        #btn-wordbank.ready { border-color: var(--success); color: var(--success); animation: pulseGreen 0.3s 2; opacity: 1; }
+        @keyframes pulseOrange { 50% { box-shadow: 0 0 25px var(--warn); transform: scale(1.1); } }
+        @keyframes pulseGreen { 50% { transform: scale(1.3); box-shadow: 0 0 30px var(--success); } }
+
+        .invoke-container { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 50; transition: opacity 0.3s; }
         .invoke-btn { 
-            width: 90px; height: 90px; border-radius: 50%; border: 3px solid #555; 
+            width: 90px; height: 90px; border-radius: 50%; border: 2px solid #555; 
             background: rgba(20,20,20,0.9); color: #555; font-size: 2.5rem; 
             display: flex; align-items: center; justify-content: center; 
-            transition: 0.2s; backdrop-filter: blur(4px); cursor: not-allowed;
-            -webkit-user-select: none; user-select: none; touch-action: none;
+            transition: 0.2s; backdrop-filter: blur(4px); 
         }
+        .invoke-btn.active { border-color: var(--success); color: var(--success); box-shadow: 0 0 30px var(--success) inset; transform: scale(1.1); }
         
-        .invoke-btn.ready { border-color: rgba(255,255,255,0.9); color: white; cursor: pointer; background: rgba(255,255,255,0.15); box-shadow: 0 0 20px rgba(255,255,255,0.2); }
-        .invoke-btn.listening { border-color: var(--success); color: var(--success); box-shadow: 0 0 40px var(--success) inset; transform: scale(1.1); animation: none; background: rgba(0, 50, 0, 0.8); }
-        .invoke-btn.locked { border-color: var(--warn); color: var(--warn); background: black; cursor: not-allowed; transform: scale(0.95); animation: pulseWarn 1s infinite; box-shadow: none; pointer-events: none; }
-        .invoke-btn.success { border-color: var(--success); color: var(--success); background: rgba(0, 50, 0, 0.8); animation: pulseSuccess 0.3s ease 2; }
-
-        @keyframes pulseWarn { 0% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } 50% { opacity: 1; box-shadow: 0 0 15px var(--warn); } 100% { opacity: 0.6; box-shadow: 0 0 5px var(--warn); } }
-        @keyframes pulseSuccess { 0% { transform: scale(1); box-shadow: 0 0 10px var(--success); } 50% { transform: scale(1.2); box-shadow: 0 0 30px var(--success); } 100% { transform: scale(1); box-shadow: 0 0 10px var(--success); } }
-
         #spirit-text { 
-            position: absolute; bottom: 250px; left: 50%; transform: translateX(-50%); 
-            width: 95%; text-align: center; 
-            font-family: 'Creepster'; font-size: 1.5rem; color: rgba(255, 255, 255, 0.95); 
-            text-shadow: 0 4px 10px black; pointer-events: none; z-index: 40; 
-            line-height: 1.2; transition: opacity 0.3s; 
-        }
-        #invoke-label { font-size: 0.6rem; color: #666; margin-top: 15px; font-family: 'Share Tech Mono'; letter-spacing: 1px; height: 15px; text-transform: uppercase; }
-        
-        /* BOTON DICCIONARIO */
-        #btn-dictionary {
-            position: absolute; top: 100px; right: 20px; z-index: 60;
-            color: rgba(255, 255, 255, 0.6); font-size: 1.2rem; cursor: pointer;
-            display: none; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 50%;
+            position: absolute; bottom: 200px; width: 90%; left: 5%; 
+            text-align: center; font-family: 'Creepster'; font-size: 2.2rem; 
+            color: #ff0000; text-shadow: 3px 3px 0px black, 0 0 15px red; 
+            pointer-events: none; z-index: 2000; opacity: 0; transition: opacity 0.3s;
         }
 
-        .word-list { max-height: 60vh; overflow-y: auto; text-align: left; font-size: 0.8rem; color: #fff; font-family: 'Share Tech Mono'; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .word-item { background: rgba(0, 50, 50, 0.6); padding: 8px; border-left: 3px solid var(--primary); color: var(--primary); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 5px var(--primary); }
+        #ui-spirit { width: 100%; height: 100%; position: absolute; top:0; left:0; pointer-events: none; }
+        #ui-spirit .invoke-container, #ui-spirit #btn-wordbank { pointer-events: auto; }
 
-        #btn-disconnect { font-size: 0.7rem; color: #aaa; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; background: rgba(20,20,20,0.9); font-weight: bold; }
-        #loading-spinner { display: none; width: 30px; height: 30px; border: 3px solid #333; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 10px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* SWITCH MODE */
         #btn-toggle-mode {
             position: absolute; bottom: 30px; right: 30px; z-index: 60;
-            width: 60px; height: 60px; border-radius: 50%;
-            background: rgba(0,0,0,0.8); border: 2px solid var(--primary); color: var(--primary);
-            display: none; align-items: center; justify-content: center; font-size: 1.5rem;
-            cursor: pointer; transition: 0.3s; box-shadow: 0 0 15px rgba(0,243,255,0.3);
+            width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(0,0,0,0.8); border: 1px solid #555; color: #888;
+            display: none; align-items: center; justify-content: center;
+            font-size: 1.2rem; cursor: pointer; transition: 0.3s;
         }
-        #btn-toggle-mode.mic-active { background: var(--primary); color: black; box-shadow: 0 0 30px var(--primary); border-color: white; }
+        #btn-toggle-mode.mic-active { background: var(--primary); color: black; box-shadow: 0 0 20px var(--primary); border-color: white; }
 
-        /* UI MIC PURO */
+        .hidden { display: none !important; }
+        .modal-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .auth-input { background: #222; border: 1px solid #444; color: white; padding: 10px; text-align: center; width: 80%; margin: 10px 0; }
+        .area-input { background: #111; border: 1px solid #333; color: var(--primary); padding: 10px; width: 100%; margin: 10px 0; font-family: 'Share Tech Mono'; font-size: 0.9rem; height: 80px; resize: none; }
+        
+        .word-list { 
+            max-height: 50vh; overflow-y: auto; width: 95%; 
+            display: grid; grid-template-columns: repeat(4, 1fr); 
+            gap: 4px; font-family: 'Share Tech Mono'; font-size: 0.7rem; 
+        }
+        .word-item { 
+            background: rgba(20,20,20,0.9); padding: 6px 2px; 
+            border: 1px solid #333; color: #fff; text-align: center; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* UI MICROFONO GRANDE */
         #ui-mic-overlay {
             position: absolute; inset: 0; z-index: 40; pointer-events: none;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             opacity: 0; transition: opacity 0.5s;
         }
-        #ui-mic-overlay.active { opacity: 1; }
-
-        #ai-feedback-overlay { position: absolute; top: 25px; left: 5px; z-index: 45; text-align: left; pointer-events: none; display: none; max-width: 280px; }
-        #ai-feedback-text {
-            font-family: 'Share Tech Mono'; font-size: 0.65rem; color: var(--hud-red);
-            text-shadow: 0 0 5px red; background: transparent; padding: 2px 4px;
-            border-left: 2px solid var(--hud-red);
-            animation: glitchText 0.2s infinite; letter-spacing: 1px; text-transform: uppercase;
-            white-space: nowrap;
+        #ui-mic-overlay.active { opacity: 1; pointer-events: auto; } /* Active permite clicks si fuera necesario */
+        
+        #mic-logo-center {
+            width: 180px; height: 180px; border-radius: 50%;
+            border: 4px solid var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+            position: relative;
         }
+        
+        /* ONDAS DE SEÑAL */
+        .signal-wave {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 2px solid var(--primary);
+            animation: ripple 2s infinite linear;
+            opacity: 0;
+        }
+        .signal-wave:nth-child(1) { animation-delay: 0s; }
+        .signal-wave:nth-child(2) { animation-delay: 0.6s; }
+        .signal-wave:nth-child(3) { animation-delay: 1.2s; }
+        
+        @keyframes ripple {
+            0% { width: 100%; height: 100%; opacity: 0.8; border-width: 4px; }
+            100% { width: 250%; height: 250%; opacity: 0; border-width: 0px; }
+        }
+
+        @keyframes pulseMic { 0% { box-shadow: 0 0 20px var(--primary); } 50% { box-shadow: 0 0 60px var(--primary); } 100% { box-shadow: 0 0 20px var(--primary); } }
 
     </style>
 </head>
-<body oncontextmenu="return false;" onselectstart="return false;">
+<body oncontextmenu="return false;">
 
+    <!-- BG STATIC (VISIBLE EN SCANNER Y MIC MODE) -->
     <div id="bg-static"></div>
-    <div id="bg-overlay"></div>
+    
+    <!-- VIDEO PRINCIPAL (SOLO VISIBLE EN SPIRIT MODE) -->
     <video id="cam-video-bg" playsinline autoplay muted loop></video>
-    <div id="cam-filter-layer"></div>
+    
+    <div id="hud-layer"></div>
 
-    <!-- LOGIN -->
+    <!-- ELEMENTOS OCULTOS PARA FUNCIONAMIENTO -->
+    <video id="seed-video" playsinline autoplay muted class="hidden"></video>
+    <video id="keep-alive-video" playsinline autoplay muted loop style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;"></video>
+
+    <!-- 1. LOGIN -->
     <div id="s-login" class="screen active">
-        <img src="obr-logo.png" class="w-32 mb-6 animate-pulse drop-shadow-[0_0_15px_rgba(0,243,255,0.5)]">
+        <img src="obr-logo.png" class="w-32 mb-6 animate-pulse" onerror="this.style.display='none'">
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
-        <p class="text-xs text-gray-400 font-mono mb-10">TERMINAL DE ENLACE</p>
-        <button id="btn-enter-system" class="app-btn justify-center font-bold tracking-widest" onclick="startSystem()">INICIAR</button>
-        <p class="absolute bottom-6 text-[10px] text-gray-600">v36.3 CLEAR VISION</p>
+        <p class="text-xs text-gray-400 font-mono mb-10">SISTEMA RESTAURADO v39.3</p>
+        <button id="btn-enter-system" class="app-btn justify-center font-bold tracking-widest" onclick="window.startSystem()">INICIAR SISTEMA</button>
     </div>
 
-    <!-- SCANNER -->
+    <!-- 2. SCANNER -->
     <div id="s-scan" class="screen">
-        <video id="scan-video" playsinline muted></video>
-        <div class="scan-box"><div class="scan-line"></div></div>
-        <div class="absolute top-12 bg-black/80 px-6 py-3 rounded-full border border-cyan-500 text-cyan-400 text-xs font-bold tracking-widest">ESCANEAR DETECTOR</div>
-        <div id="btn-offline-access" onclick="openAuthModal()"><i class="fas fa-cog"></i></div>
-        <button onclick="location.reload()" class="absolute bottom-12 text-red-500 text-xs font-bold border-b border-red-500 pb-1">CANCELAR</button>
+        <div id="scan-overlay-dark"></div>
+        <div id="scan-frame">
+            <video id="scan-video" playsinline muted></video>
+            <div class="scan-laser"></div>
+        </div>
+        <div class="absolute top-24 text-center w-full text-cyan-400 font-bold text-sm" style="z-index:20;">ESCANEAR QR DETECTOR</div>
+        <div id="btn-offline-access" onclick="openAuthModal()" style="position: absolute; top: 20px; right: 20px; z-index: 60; color: rgba(255,255,255,0.3); font-size: 1.5rem;"><i class="fas fa-cog"></i></div>
+        <button onclick="location.reload()" class="absolute bottom-20 text-red-500 text-xs font-bold border-b border-red-500 pb-1" style="z-index:20;">CANCELAR OPERACIÓN</button>
     </div>
 
     <!-- MODALES -->
-    <div id="modal-auth" class="modal-overlay"><div class="modal-box"><h3 class="text-white font-bold mb-2">MODO SOLITARIO</h3><input type="password" id="auth-pass" class="auth-input" placeholder="CLAVE"><div class="flex gap-2 mt-4"><button onclick="closeAuthModal()" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg">VOLVER</button><button onclick="checkAuth()" class="flex-1 py-3 bg-red-600 text-xs text-white rounded-lg font-bold">ENTRAR</button></div></div></div>
-    <div id="modal-api" class="modal-overlay" style="z-index: 5000;"><div class="modal-box"><h3 class="text-cyan-400 font-bold mb-4 tracking-widest">IA CONFIG</h3><p class="text-[10px] text-gray-400 mb-4">Ingresa tu API Key de Google Gemini.</p><button onclick="window.open('https://aistudio.google.com/api-keys', '_blank')" class="w-full py-3 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded-lg flex items-center justify-center gap-2 font-bold hover:bg-gray-700"><i class="fas fa-key"></i> GENERAR NUEVA CLAVE</button><input type="text" id="input-api-key" class="auth-input" placeholder="Pegar AIzaSy..."><div class="flex gap-2 mt-4"><button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button><button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-3 bg-blue-600 text-xs text-white rounded-lg font-bold">VALIDAR</button></div></div></div>
-    <div id="modal-dictionary" class="modal-overlay" style="z-index: 5000;"><div class="modal-box mt-24" style="max-width: 500px;"><h3 class="text-green-400 font-bold mb-4 tracking-widest">BANCO DE PALABRAS</h3><div id="word-list-container" class="word-list border border-gray-800 p-2 rounded h-64 bg-black overflow-y-auto"></div><button onclick="document.getElementById('modal-dictionary').classList.remove('active')" class="w-full mt-4 py-3 bg-gray-800 text-xs text-white rounded-lg font-bold">CERRAR</button></div></div>
-
-    <!-- MENU -->
-    <div id="s-menu" class="screen">
-        <div class="text-center mb-10 relative w-full">
-            <img src="obr-logo.png" class="w-24 mx-auto mb-3">
-            <div id="menu-status" class="text-[10px] text-green-400 font-bold tracking-[3px] border border-green-900 px-3 py-1 rounded-full inline-block bg-green-900/20">CONECTADO</div>
-            <div id="btn-api-config" onclick="openApiSettings()"><i class="fas fa-cog"></i></div>
-        </div>
-        <div id="btn-mic" class="app-btn" onclick="setMode('mic')">
-            <i class="fas fa-microphone-lines text-2xl text-cyan-400"></i>
-            <div><div class="font-bold text-sm">MICRÓFONO PRO</div><div id="mic-status" class="text-[10px] text-gray-400">Audio Puro</div></div>
-        </div>
-        <div id="btn-spirit" class="app-btn red locked" onclick="setMode('spirit')">
-            <i class="fas fa-ghost text-2xl text-red-500"></i>
-            <div>
-                <div class="font-bold text-sm">SPIRIT BOX AI</div>
-                <div id="spirit-status" class="text-[10px] text-red-400 font-bold flex items-center gap-2 mt-1"><i class="fas fa-lock"></i> SIN API KEY</div>
+    <div id="modal-auth" class="modal-overlay"><div class="modal-box p-5 bg-black border border-gray-700 rounded-lg text-center"><h3 class="text-white font-bold mb-2">ACCESO MANUAL</h3><input type="password" id="auth-pass" class="auth-input" placeholder="CLAVE DE ACCESO"><div class="flex gap-2 mt-4"><button onclick="closeAuthModal()" class="flex-1 py-2 bg-gray-800 text-xs text-white rounded">VOLVER</button><button onclick="checkAuth()" class="flex-1 py-2 bg-red-600 text-xs text-white rounded font-bold">ENTRAR</button></div></div></div>
+    
+    <div id="modal-api" class="modal-overlay"><div class="modal-box p-5 bg-black border border-gray-700 rounded-lg text-center w-80"><h3 class="text-cyan-400 font-bold mb-2">API GOOGLE IA</h3><button onclick="window.open('https://aistudio.google.com/api-keys')" class="w-full py-2 bg-gray-800 border border-gray-600 text-xs text-blue-300 mb-4 rounded">OBTENER CLAVE</button><input type="text" id="input-api-key" class="auth-input" placeholder="Pegar AIzaSy..."><div class="flex gap-2 mt-4"><button onclick="document.getElementById('modal-api').classList.remove('active')" class="flex-1 py-2 bg-gray-800 text-xs rounded">CERRAR</button><button id="btn-save-api" onclick="saveApiKey()" class="flex-1 py-2 bg-blue-600 text-xs rounded">GUARDAR</button></div></div></div>
+    
+    <div id="modal-dictionary" class="modal-overlay"><div class="modal-box mt-10 p-4 bg-black border border-green-900 rounded-lg w-11/12"><h3 class="text-green-400 mb-4 text-center font-bold tracking-widest">BANCO DE PALABRAS</h3><div id="word-list-container" class="word-list"></div><button onclick="document.getElementById('modal-dictionary').classList.remove('active')" class="w-full mt-4 py-3 bg-gray-900 text-sm rounded text-white border border-gray-700">CERRAR DICCIONARIO</button></div></div>
+    
+    <div id="modal-photo" class="modal-overlay">
+        <div class="modal-box bg-black p-4 rounded-lg w-11/12 max-w-md border-2 border-red-900 shadow-lg shadow-red-900/50" style="margin-top: -50px;">
+            <h3 class="text-red-500 font-bold mb-2 font-creepy tracking-widest text-2xl text-center">CALIBRAR ENTORNO</h3>
+            <textarea id="place-context" class="area-input" placeholder="ESCRIBE CONTEXTO: Cementerio, Casa Antigua, Bosque, Hospital... (Opcional)" oninput="checkContextInput()"></textarea>
+            <div class="relative w-full h-48 bg-black rounded-lg overflow-hidden mb-4 border border-gray-800">
+                <video id="preview-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
+            </div>
+            <button id="btn-scan-now" class="bg-red-900 hover:bg-red-800 text-white p-4 rounded w-full flex items-center justify-center gap-2 font-bold text-lg transition-all" onclick="captureSeed()">
+                <i class="fas fa-camera text-xl"></i> CALIBRAR
+            </button>
+            <div id="seed-status" class="text-xs text-yellow-500 mt-3 text-center font-mono h-4"></div>
+            <div class="text-center mt-4">
+                <button onclick="closePhotoModal()" class="text-xs text-gray-500 underline">CANCELAR</button>
             </div>
         </div>
     </div>
 
-    <!-- LIVE -->
+    <!-- 3. MENU -->
+    <div id="s-menu" class="screen">
+        <div class="text-center mb-10 w-full relative">
+            <img src="obr-logo.png" class="w-24 mx-auto mb-4" onerror="this.style.display='none'">
+            <div id="conn-status" class="text-xs text-green-400 font-bold border border-green-800 px-4 py-1 rounded-full inline-block tracking-widest">CONECTADO</div>
+            <!-- CONFIG BTN -->
+            <div id="btn-api-config-menu" onclick="openApiSettings()"><i class="fas fa-cog"></i></div>
+        </div>
+        <div id="btn-mic-pro" class="app-btn" onclick="enterMicPro()">
+            <i class="fas fa-microphone-lines text-2xl text-cyan-400"></i>
+            <div><div class="font-bold text-sm">MODO MICRÓFONO</div><div id="mic-status" class="text-[10px] text-gray-400">Audio Puro / Cam OFF</div></div>
+        </div>
+        <div id="btn-spirit-box" class="app-btn red locked" onclick="enterSpiritBox()">
+            <i class="fas fa-ghost text-2xl text-red-500"></i>
+            <div><div class="font-bold text-sm">SPIRIT BOX AI</div><div id="api-status-text" class="text-[10px] text-red-400">REQUIERE API KEY</div></div>
+        </div>
+    </div>
+
+    <!-- LIVE SCREEN -->
     <div id="s-live" class="screen">
         <div class="status-bar">
-            <div class="status-indicator">
-                <div id="live-dot" class="dot offline"></div>
-                <span id="live-text" class="text-[10px] font-bold text-gray-300">OFFLINE</span>
-            </div>
-            <button id="btn-disconnect" onclick="logout()">SALIR</button>
+            <div class="flex items-center"><div id="live-dot" class="dot online"></div><span id="live-text" class="text-xs text-green-400 font-bold">LIVE</span></div>
+            <button onclick="logout()" class="text-xs text-gray-400 border border-gray-600 px-3 py-1 rounded">SALIR</button>
         </div>
 
-        <div id="btn-dictionary" onclick="openDictionary()"><i class="fas fa-book"></i></div>
+        <div id="btn-wordbank" class="idle" onclick="showWordBank()"><i class="fas fa-book"></i></div>
 
-        <!-- UI MIC -->
+        <!-- UI MIC OVERLAY (SOLO MODO MICROFONO) -->
         <div id="ui-mic-overlay">
-            <div class="w-48 h-48 rounded-full border-4 border-cyan-500 flex items-center justify-center bg-cyan-500/10 shadow-[0_0_80px_rgba(0,243,255,0.4)] animate-pulse">
-                <i class="fas fa-microphone text-7xl text-cyan-400"></i>
+            <div id="mic-logo-center">
+                <div class="signal-wave"></div>
+                <div class="signal-wave"></div>
+                <div class="signal-wave"></div>
+                <i class="fas fa-microphone text-7xl text-cyan-400 relative z-10"></i>
             </div>
-            <p class="mt-8 text-cyan-300 text-sm font-mono tracking-widest">TRANSMITIENDO AUDIO</p>
+            <p class="mt-12 text-cyan-300 text-sm font-mono tracking-widest font-bold animate-pulse">TRANSMITIENDO SEÑAL</p>
         </div>
         
-        <div id="spirit-text"></div>
-        <div class="invoke-container">
-            <button id="invoke-btn" class="invoke-btn" onpointerdown="startListening()" onpointerup="stopListening()" oncontextmenu="return false;" disabled>
-                <i id="invoke-icon" class="fas fa-fingerprint"></i>
-            </button>
-            <div id="invoke-label">INICIANDO...</div>
+        <!-- UI SPIRIT (SOLO MODO SPIRIT) -->
+        <div id="ui-spirit">
+            <div id="spirit-text"></div>
+            <div class="invoke-container">
+                <button id="invoke-btn" class="invoke-btn locked" onpointerdown="pressFinger()" onpointerup="releaseFinger()" oncontextmenu="return false;" disabled>
+                    <i id="invoke-icon" class="fas fa-fingerprint"></i>
+                </button>
+                <div id="invoke-status" class="text-[10px] text-gray-400 mt-2 tracking-widest font-bold">CALIBRANDO...</div>
+            </div>
         </div>
         
-        <div id="btn-toggle-mode" onclick="toggleSpiritVox()">
+        <div id="btn-toggle-mode" onclick="window.toggleSpiritVox()">
             <i class="fas fa-ghost" id="toggle-icon"></i>
         </div>
         
-        <video id="keep-alive-video" playsinline autoplay muted loop style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;"></video>
-        <!-- AUDIO FONDO -->
         <audio id="bg-noise" src="FONDO_1.mp3" loop></audio>
     </div>
 
-    <!-- FOTO -->
-    <div id="modal-photo" class="modal-overlay" style="z-index: 3000;">
-        <div class="modal-box">
-            <h3 class="text-red-500 font-bold mb-2 font-creepy tracking-widest text-xl">CALIBRAR ENTORNO</h3>
-            <p class="text-[10px] text-gray-400 mb-4">Toma una foto para generar el banco de palabras.</p>
-            <div class="relative w-full h-48 bg-black rounded-lg overflow-hidden mb-4 border border-gray-800 shadow-[0_0_20px_rgba(255,0,0,0.2)]"><video id="seed-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video></div>
-            <div class="photo-btn" onclick="captureAndAnalyze()"><i class="fas fa-camera text-2xl"></i><span>ESCANEAR AHORA</span></div>
-            <div id="loading-spinner"></div><div id="photo-status" class="text-xs text-yellow-500 mt-2 h-4 text-center font-mono"></div>
-            <button onclick="closePhotoModal()" class="mt-4 text-xs text-gray-500 underline">CANCELAR</button>
-        </div>
-    </div>
-
 <script>
+    // --- GLOBALS ---
     let GEMINI_API_KEY = localStorage.getItem('obr_api_key_mic') || "";
     let stream, peer, conn, hostId;
     let audioCtx, destNode, micSource, micGainNode, bgSourceNode, bgGainNode;
-    let recognition, isProcessing=false, autoSpiritInterval, isStandalone=false;
-    let currentPitch = 0.5, currentRate = 0.8;
-    let spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA"];
-    let isCalibrated = false, isFallbackMode = false, speechTimeout; 
+    let recognition, isProcessing = false, passiveInterval;
+    // DICCIONARIO BASE (Fallback)
+    let spiritScript = ["VACÍO", "FRÍO", "AQUÍ", "DOLOR", "VEO", "ATRAS", "MUERTE", "AYUDA", "NO", "SI", "SOLO", "SOMBRA", "LUZ", "NIÑO", "VIEJO"];
+    let isCalibrated = false, isFallbackMode = false;
     let isSpiritVoxActive = true; 
+    let isMicMode = false; 
+    let isWordBankReady = false; 
+    let currentMode = "";
+    // PARAMETROS DE VOZ VARIABLES
+    let currentPitch = 0.8;
+    let currentRate = 0.8;
+    
+    let isStandalone = false;
+    let hudInterval; 
+    window.currentImageB64 = ""; 
 
+    // --- 1. UTILS ---
     function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
     
     function updateStatusUI(online) {
-        const dot = document.querySelector('.status-indicator .dot');
-        const txt = document.querySelector('.status-indicator span');
-        const menuStat = document.getElementById('menu-status');
+        const dot = document.getElementById('live-dot');
+        const txt = document.getElementById('live-text');
+        const menuStat = document.getElementById('conn-status');
         if(online) {
-            if(dot) dot.className = "dot online"; if(txt) { txt.innerText = "EN VIVO"; txt.style.color="#00ff41"; }
+            if(dot) dot.className = "dot online";
+            if(txt) { txt.innerText = "EN VIVO"; txt.style.color="#00ff41"; }
             if(menuStat) { menuStat.innerText = "CONECTADO"; menuStat.style.color="#00ff41"; menuStat.style.borderColor = "#00ff41"; }
         } else {
-            if(dot) dot.className = "dot offline"; if(txt) { txt.innerText = "OFFLINE"; txt.style.color="#ff0055"; }
+            if(dot) dot.className = "dot offline";
+            if(txt) { txt.innerText = "OFFLINE"; txt.style.color="#ff0055"; }
             if(menuStat) { menuStat.innerText = "MODO OFFLINE"; menuStat.style.color="#ffae00"; menuStat.style.borderColor = "#ffae00"; }
         }
     }
-    
-    function updateMenuAccess() {
-        const btnMic = document.getElementById('btn-mic');
-        const micStatus = document.getElementById('mic-status');
-        if(isStandalone) {
-            btnMic.classList.add('locked');
-            micStatus.innerHTML = '<i class="fas fa-wifi"></i> REQUIERE CONEXIÓN';
-            micStatus.style.color = "#ff3333";
-        } else {
-            btnMic.classList.remove('locked');
-            micStatus.innerText = "Audio Puro";
-            micStatus.style.color = "#9ca3af";
-        }
-        updateApiStatus(GEMINI_API_KEY ? true : null);
+
+    function checkContextInput() {
+        const btn = document.getElementById('btn-scan-now');
+        if(btn) btn.style.display = 'flex';
     }
 
+    function updateWordBankIcon(state) {
+        const btn = document.getElementById('btn-wordbank');
+        const invoke = document.getElementById('invoke-btn');
+        const lbl = document.getElementById('invoke-status');
+        if(state === 'loading') {
+            if(btn) btn.className = 'loading'; 
+            if(invoke) invoke.className = 'invoke-btn locked'; 
+            if(lbl) { lbl.innerText = "CALIBRANDO ENTORNO..."; lbl.style.color = "#ffae00"; }
+        } else if (state === 'ready') {
+            if(btn) btn.className = 'ready';
+            setTimeout(() => { if(btn) btn.className = ''; }, 1000);
+            if(invoke) { invoke.disabled = false; invoke.className = 'invoke-btn ready'; }
+            if(lbl) { lbl.innerText = "MANTENER PARA PREGUNTAR"; lbl.style.color = "#fff"; }
+            isWordBankReady = true;
+        }
+    }
+
+    function populateDictionary() {
+        const c = document.getElementById('word-list-container'); 
+        if(!c) return;
+        c.innerHTML = ""; 
+        spiritScript.forEach(w => { 
+            const s = document.createElement('div'); 
+            s.innerText = w; s.className="word-item"; 
+            c.appendChild(s); 
+        });
+    }
+
+    // --- 2. SYSTEM START ---
+    window.startSystem = async function() {
+        const btn = document.getElementById('btn-enter-system');
+        btn.innerText = "INICIANDO..."; btn.disabled = true;
+        
+        // UNLOCK AUDIO MOBILE
+        if('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(u);
+            window.speechSynthesis.getVoices(); 
+        }
+        
+        try {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: {echoCancellation:true}, video: { facingMode: "environment", width:{ideal:1280}, height:{ideal:720} } });
+            } catch(e1) {
+                 stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "environment" } });
+            }
+            const videos = ['scan-video', 'cam-video-bg', 'seed-video', 'preview-video', 'keep-alive-video'];
+            videos.forEach(id => { 
+                const el = document.getElementById(id); 
+                if(el) { el.srcObject = stream; el.play().catch(e=>{}); } 
+            });
+            
+            try {
+                initAudioContext(); 
+                const bg = document.getElementById('bg-noise');
+                if(bg) { bg.volume = 0.1; try { await bg.play(); bg.pause(); } catch(e){} }
+            } catch(e) { console.log("Audio warning", e); }
+            
+            if(GEMINI_API_KEY) validateApiKey(GEMINI_API_KEY);
+            else updateApiStatus(null);
+
+            show('s-scan'); scanQR();
+        } catch(e) { 
+            alert("ERROR DE CÁMARA:\n" + e.message);
+            if(btn) { btn.innerText = "REINTENTAR"; btn.disabled = false; }
+        }
+    };
+    
+    function initAudioContext() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            destNode = audioCtx.createMediaStreamDestination();
+            if(stream) { micSource = audioCtx.createMediaStreamSource(stream); micGainNode = audioCtx.createGain(); micGainNode.gain.value = 0; micSource.connect(micGainNode); micGainNode.connect(destNode); }
+            const bgEl = document.getElementById('bg-noise');
+            if(bgEl) { bgSourceNode = audioCtx.createMediaElementSource(bgEl); bgGainNode = audioCtx.createGain(); bgGainNode.gain.value = 1.0; bgSourceNode.connect(bgGainNode); bgGainNode.connect(destNode); bgGainNode.connect(audioCtx.destination); }
+            
+            document.body.addEventListener('click', function() {
+                if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            }, {once:true});
+        } catch(e) {}
+    }
+
+    // --- 3. AUTH & QR ---
+    function openAuthModal() { document.getElementById('modal-auth').classList.add('active'); }
+    function closeAuthModal() { document.getElementById('modal-auth').classList.remove('active'); }
+    function checkAuth() {
+        if(document.getElementById('auth-pass').value === "OBR1995@") { isStandalone = true; closeAuthModal(); updateMenuUI(); show('s-menu'); } else alert("CLAVE INCORRECTA");
+    }
+    function updateMenuUI() {
+        const micBtn = document.getElementById('btn-mic-pro'); const spiritBtn = document.getElementById('btn-spirit-box');
+        updateStatusUI(!isStandalone);
+        if(isStandalone) micBtn.classList.add('locked'); else micBtn.classList.remove('locked');
+        updateApiStatus(GEMINI_API_KEY ? true : null);
+    }
+    function scanQR() {
+        const v = document.getElementById('scan-video'); const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
+        function loop() {
+            if(document.getElementById('s-scan').classList.contains('active') && v.readyState===4) {
+                cvs.width=v.videoWidth; cvs.height=v.videoHeight; ctx.drawImage(v,0,0);
+                const c = jsQR(ctx.getImageData(0,0,cvs.width,cvs.height).data, cvs.width, cvs.height);
+                if(c) connectPeer(c.data);
+            }
+            requestAnimationFrame(loop);
+        } loop();
+    }
+    function connectPeer(id) { 
+        if(!id) return;
+        hostId = id; 
+        isStandalone = false; 
+        peer = new Peer(); 
+        peer.on('open', () => { 
+            updateMenuUI(); 
+            show('s-menu'); 
+            if(destNode) peer.call(hostId, destNode.stream); 
+        }); 
+        peer.on('error', e => { 
+            console.error(e);
+            alert("Error al conectar con receptor. Reiniciando..."); 
+            location.reload(); 
+        }); 
+    }
+
+    // --- 4. API ---
+    function openApiSettings() { document.getElementById('modal-api').classList.add('active'); }
+    async function saveApiKey() {
+        const k = document.getElementById('input-api-key').value.trim();
+        if(k.length > 10) { localStorage.setItem('obr_api_key_mic', k); GEMINI_API_KEY = k; document.getElementById('modal-api').classList.remove('active'); updateApiStatus(undefined); validateApiKey(k); alert("CLAVE GUARDADA"); }
+    }
+    async function validateApiKey(key) {
+        try { const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: "Ping" }] }] }) }); if(r.ok) updateApiStatus(true); else updateApiStatus(false); } catch(e) { updateApiStatus(false); }
+    }
     function updateApiStatus(isValid) {
-        const btn = document.getElementById('btn-spirit');
-        const status = document.getElementById('spirit-status');
-        if(!btn || !status) return;
-        if(isValid === true) {
-            btn.classList.remove('locked'); status.innerHTML = "LISTO"; status.style.color = "#00ff41";
-        } else if (isValid === false) {
-            btn.classList.add('locked'); status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ERROR API'; status.style.color = "#ff3333";
-        } else if (isValid === undefined) {
-             btn.classList.add('locked'); status.innerHTML = '<i class="fas fa-sync fa-spin"></i> VERIFICANDO...'; status.style.color = "#ffae00";
+        const btn = document.getElementById('btn-spirit-box'); const status = document.getElementById('api-status-text');
+        if(!btn) return;
+        if(isValid === true) { btn.classList.remove('locked'); status.innerText = "ACTIVO - LISTO"; status.style.color = "#00ff41"; } else { btn.classList.add('locked'); status.innerText = "REQUIERE API KEY"; status.style.color = "#ff3333"; }
+    }
+
+    // --- 5. MODES ---
+    // MODO MICRÓFONO
+    function enterMicPro() {
+        if(isStandalone) return; 
+        currentMode = 'mic_pro';
+        
+        const vid = document.getElementById('cam-video-bg');
+        if(vid) { vid.style.width = '1px'; vid.style.height = '1px'; vid.style.opacity = '0'; } 
+
+        document.getElementById('bg-static').style.opacity = '1';
+        document.getElementById('hud-layer').style.display = 'none'; 
+        
+        if(micGainNode) micGainNode.gain.value = 1.0; 
+        document.getElementById('bg-noise').pause(); 
+        
+        document.getElementById('ui-mic-overlay').classList.add('active');
+        document.getElementById('ui-spirit').classList.add('hidden');
+        document.getElementById('btn-wordbank').style.display = 'none';
+        
+        document.getElementById('btn-toggle-mode').style.display = 'none'; 
+        
+        stopHudAnimation();
+        show('s-live');
+    }
+
+    // MODO SPIRIT
+    function enterSpiritBox() {
+        if(!GEMINI_API_KEY) { openApiSettings(); return; }
+        currentMode = 'spirit'; document.getElementById('modal-photo').classList.add('active');
+        const pv = document.getElementById('preview-video');
+        if(pv && stream) pv.srcObject = stream;
+    }
+    function closePhotoModal() { document.getElementById('modal-photo').classList.remove('active'); }
+
+    // --- 6. LOGICA IA Y CALIBRACION ---
+    async function captureSeed() {
+        const status = document.getElementById('seed-status');
+        const context = document.getElementById('place-context').value;
+        const vid = document.getElementById('preview-video');
+        
+        if(!vid || vid.readyState !== 4) { status.innerText = "CÁMARA INICIANDO..."; return; }
+        
+        status.innerText = "SINTONIZANDO ENTIDAD..."; updateWordBankIcon('loading'); 
+        
+        currentPitch = 0.5 + Math.random() * 0.8; 
+        currentRate = 0.6 + Math.random() * 0.5;
+
+        const cvs = document.createElement('canvas'); cvs.width = 640; cvs.height = 480;
+        cvs.getContext('2d').drawImage(vid, 0, 0, 640, 480);
+        const b64 = cvs.toDataURL('image/jpeg', 0.6).split(',')[1];
+        window.currentImageB64 = b64; 
+
+        try {
+            const prompt = `Analiza la imagen y el contexto: '${context}'. Genera 50 PALABRAS CLAVE ÚNICAS en ESPAÑOL. Deben ser SUSTANTIVOS CONCRETOS y EXPERIENCIAS HUMANAS REALES (ej: Cuchillo, Sangre, Juan, Maria, Grito, Oscuridad). NADA ABSTRACTO. NADA POETICO. NADA RELIGIOSO. Formato: PALABRA|PALABRA.`;
+            
+            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({contents:[{parts:[{text: prompt}, {inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
+            });
+            const d = await r.json();
+            const txt = d.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            if(txt) {
+                let words = txt.replace(/\n/g, '|').split('|').map(s => s.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ]/g, '')).filter(s => s.length > 2);
+                if(words.length > 10) spiritScript = words.slice(0, 50);
+            }
+        } catch(e) { console.log("Backup usado", e); }
+        
+        status.innerText = "ENTIDAD FIJADA";
+        updateWordBankIcon('ready');
+        
+        setTimeout(() => {
+            document.getElementById('modal-photo').classList.remove('active');
+            startSpiritBoxActive();
+        }, 800);
+    }
+    
+    function startSpiritBoxActive() {
+        document.getElementById('bg-static').style.opacity = '0';
+        // RESTAURAR VIDEO FULL SIZE
+        const vid = document.getElementById('cam-video-bg');
+        if(vid) { vid.style.width = '100%'; vid.style.height = '100%'; vid.style.opacity = '1'; }
+        
+        document.getElementById('hud-layer').style.display = 'block'; 
+        startHudAnimation();
+
+        if(micGainNode) micGainNode.gain.value = 0; 
+        document.getElementById('bg-noise').play().catch(e=>{});
+        
+        const uio = document.getElementById('ui-mic-overlay'); if(uio) uio.classList.remove('active');
+        const uis = document.getElementById('ui-spirit'); if(uis) uis.classList.remove('hidden');
+        
+        document.getElementById('btn-wordbank').style.display = 'block';
+        document.getElementById('btn-toggle-mode').style.display = 'flex';
+        
+        isMicMode = false; isWordBankReady = true;
+        populateDictionary();
+        initSpeech(); startPassiveLoop(); show('s-live');
+    }
+
+    function showWordBank() {
+        populateDictionary();
+        document.getElementById('modal-dictionary').classList.add('active');
+    }
+
+    // --- 7. TOGGLE Y HUD ---
+    function startHudAnimation() {
+        const layer = document.getElementById('hud-layer');
+        clearInterval(hudInterval);
+        hudInterval = setInterval(() => {
+            if(document.hidden || !document.getElementById('s-live').classList.contains('active')) return;
+            const box = document.createElement('div');
+            box.className = 'hud-box';
+            const w = Math.floor(Math.random() * 20 + 10) + '%';
+            const h = Math.floor(Math.random() * 20 + 10) + '%';
+            const top = Math.floor(Math.random() * 80) + '%';
+            const left = Math.floor(Math.random() * 80) + '%';
+            box.style.width = w; box.style.height = h; box.style.top = top; box.style.left = left;
+            layer.appendChild(box);
+            setTimeout(() => box.remove(), 400); 
+        }, 800); 
+    }
+
+    function stopHudAnimation() {
+        clearInterval(hudInterval);
+        document.getElementById('hud-layer').innerHTML = '';
+    }
+
+    window.toggleSpiritVox = function() { 
+        if(currentMode !== 'spirit') return;
+        isMicMode = !isMicMode;
+        const icon = document.getElementById('toggle-icon');
+        const btn = document.getElementById('btn-toggle-mode');
+        const uiSpirit = document.getElementById('ui-spirit');
+        const vid = document.getElementById('cam-video-bg');
+        const uio = document.getElementById('ui-mic-overlay');
+
+        if(isMicMode) {
+            // CAMBIO A MIC: 
+            icon.className = "fas fa-microphone"; btn.classList.add('mic-active');
+            
+            document.getElementById('bg-static').style.opacity = '1'; 
+            if(vid) { vid.style.width = '1px'; vid.style.height = '1px'; vid.style.opacity = '0'; } // MANTENER STREAM VIVO
+            
+            document.getElementById('hud-layer').style.display = 'none'; stopHudAnimation();
+            document.getElementById('bg-noise').pause(); 
+            if(micGainNode) micGainNode.gain.value = 1.0;
+            
+            uiSpirit.classList.add('hidden');
+            uio.classList.add('active'); // MOSTRAR MICROFONO GRANDE
+
+            clearInterval(passiveInterval);
         } else {
-             btn.classList.add('locked'); status.innerHTML = '<i class="fas fa-lock"></i> REQUIERE API KEY'; status.style.color = "#aaa";
+            // CAMBIO A SPIRIT
+            icon.className = "fas fa-ghost"; btn.classList.remove('mic-active');
+            
+            document.getElementById('bg-static').style.opacity = '0'; 
+            if(vid) { vid.style.width = '100%'; vid.style.height = '100%'; vid.style.opacity = '1'; } // RESTAURAR VIDEO
+            
+            document.getElementById('hud-layer').style.display = 'block'; startHudAnimation();
+            document.getElementById('bg-noise').play(); 
+            if(micGainNode) micGainNode.gain.value = 0;
+            
+            uiSpirit.classList.remove('hidden');
+            uio.classList.remove('active'); // OCULTAR MICROFONO GRANDE
+
+            startPassiveLoop();
+        }
+    };
+    
+    // --- 8. RECONOCIMIENTO Y PTT ---
+    function pressFinger() {
+        if(isProcessing || isMicMode || !isWordBankReady) return;
+        isProcessing = true;
+        document.getElementById('invoke-btn').classList.add('active');
+        document.getElementById('invoke-status').innerText = "ESCUCHANDO...";
+        
+        clearInterval(passiveInterval);
+
+        const vid = document.getElementById('seed-video');
+        const cvs = document.createElement('canvas'); cvs.width=320; cvs.height=240;
+        if(vid && vid.readyState === 4) {
+            cvs.getContext('2d').drawImage(vid,0,0,320,240);
+            window.currentImageB64 = cvs.toDataURL('image/jpeg', 0.5).split(',')[1];
+        }
+
+        if(micGainNode) micGainNode.gain.value = 1.0; 
+        if(recognition) {
+            try { recognition.start(); } catch(e) { 
+                console.error(e); 
+                isProcessing=false; 
+                triggerFallback(); // Error al iniciar
+            }
+        }
+    }
+
+    function releaseFinger() {
+        if(isMicMode) return;
+        document.getElementById('invoke-btn').classList.remove('active');
+        document.getElementById('invoke-status').innerText = "MANTENER PARA PREGUNTAR";
+        
+        if(recognition) { 
+            recognition.stop(); 
+        }
+        if(micGainNode) micGainNode.gain.value = 0; 
+        
+        // Timeout de seguridad si no hay respuesta en 3 seg
+        setTimeout(() => { 
+            if(isProcessing) { 
+                triggerFallback(); 
+            } 
+        }, 4000); 
+    }
+
+    // FUNCION FALLBACK: DESBLOQUEAR HUELLA SI NO HAY TEXTO
+    function triggerFallback() {
+        if(!isProcessing) return;
+        console.log("Fallback Triggered");
+        const word = spiritScript[Math.floor(Math.random() * spiritScript.length)];
+        showSpiritText(word); 
+        speakWithEcho(word);
+        isProcessing = false;
+        startPassiveLoop();
+    }
+
+    function initSpeech() {
+        if('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = 'es-ES'; recognition.continuous = false; recognition.interimResults = false;
+            
+            recognition.onresult = async e => {
+                const q = e.results[0][0].transcript;
+                console.log("Pregunta:", q);
+                
+                if(!q || q.trim() === "") {
+                    triggerFallback(); // Texto vacio
+                    return;
+                }
+
+                try {
+                    // PROMPT LOBOTOMIZADO EXTREMO
+                    const prompt = `Rol: Espíritu Humano. Pregunta: "${q}". 
+                    1. Si preguntan NOMBRE: Responde solo UN NOMBRE PROPIO COMÚN (ej: JUAN, PEDRO, ANA). NADA MAS.
+                    2. Si preguntan QUÉ PASÓ/CAUSA: Responde solo EL HECHO (ej: ACCIDENTE, ASESINATO, CAÍDA). NADA MAS.
+                    3. Si preguntan CUÁNTOS: Responde solo EL NÚMERO (ej: TRES, UNO). NADA MAS.
+                    REGLA GENERAL: MÁXIMO 1 o 2 PALABRAS. SECO. DIRECTO. SIN ADJETIVOS. NO INVENTES POESÍA.`;
+                    
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:"image/jpeg",data:window.currentImageB64 || ""}}]}]})
+                    });
+                    const d = await r.json(); 
+                    let ans = d.candidates[0].content.parts[0].text.toUpperCase();
+                    
+                    // Limpieza
+                    ans = ans.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[^A-ZÑÁÉÍÓÚ ]/g, '');
+                    // Forzar máximo 2 palabras
+                    const words = ans.split(' ').filter(w => w.length > 0);
+                    if(words.length > 2) ans = words.slice(0, 2).join(' ');
+
+                    showSpiritText(ans); speakWithEcho(ans);
+                    setTimeout(startPassiveLoop, 15000);
+                    
+                } catch(x) { 
+                    console.error(x);
+                    triggerFallback(); // Fallo de API
+                }
+                isProcessing = false; 
+            };
+            
+            recognition.onerror = (e) => { 
+                console.log("Error Speech", e.error);
+                if(e.error === 'no-speech' || e.error === 'network') {
+                    triggerFallback();
+                } else {
+                    isProcessing = false; 
+                    startPassiveLoop(); 
+                }
+            };
+            recognition.onend = () => { 
+                // Ya manejado por releaseFinger y timeouts
+            };
+        }
+    }
+
+    function startPassiveLoop() {
+        clearInterval(passiveInterval);
+        // INTERVALO DE 4 A 7 SEGUNDOS (Acelerado)
+        passiveInterval = setInterval(() => {
+            if(!isProcessing && !isMicMode && document.getElementById('s-live').classList.contains('active')) {
+                const word = spiritScript[Math.floor(Math.random() * spiritScript.length)];
+                showSpiritText(word); speakWithEcho(word);
+            }
+        }, 4000 + Math.random()*3000);
+    }
+
+    function showSpiritText(t) {
+        const el = document.getElementById('spirit-text');
+        if(el) {
+            el.innerText = t;
+            el.style.opacity = 1;
+            setTimeout(()=>el.style.opacity=0, 4000);
         }
     }
 
     function speakWithEcho(text) {
         if('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            if(bgGainNode) bgGainNode.gain.value = 0.2;
-            const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = 0.8;
-            const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.3; u2.rate = 0.7; u2.volume = 0.2; 
-            window.speechSynthesis.speak(u1); setTimeout(()=>window.speechSynthesis.speak(u2), 50);
-            setTimeout(() => { if(!isProcessing && isSpiritVoxActive && bgGainNode) bgGainNode.gain.value = 1.0; }, 2500);
+            if(bgGainNode) bgGainNode.gain.value = 0.2; 
+            const u1 = new SpeechSynthesisUtterance(text); u1.lang = 'es-ES'; u1.pitch = currentPitch; u1.rate = currentRate;
+            const u2 = new SpeechSynthesisUtterance(text); u2.lang = 'es-ES'; u2.pitch = currentPitch - 0.2; u2.rate = currentRate - 0.1; u2.volume = 0.4; 
+            window.speechSynthesis.speak(u1); setTimeout(()=>window.speechSynthesis.speak(u2), 100);
+            setTimeout(() => { if(!isProcessing && !isMicMode && bgGainNode) bgGainNode.gain.value = 1.0; }, 3000);
         }
-    }
-
-    function triggerGreenPulse() {
-        const btn = document.getElementById('invoke-btn');
-        if(btn) { btn.classList.add('success'); setTimeout(() => btn.classList.remove('success'), 600); }
-    }
-    
-    function updateLog() {} 
-
-    window.onload = async () => {
-        const btn = document.getElementById('btn-enter-system');
-        if(btn) {
-             btn.disabled = true; btn.innerText = "CARGANDO..."; btn.style.opacity = "0.5";
-             try {
-                setTimeout(() => {
-                    btn.disabled = false; btn.innerText = "INGRESAR AL SISTEMA"; btn.style.opacity = "1";
-                }, 500);
-             } catch(e) { btn.innerText = "REINTENTAR"; btn.disabled = false; }
-        }
-    };
-
-    async function startSystem() {
-        if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {echoCancellation:true, noiseSuppression:true, autoGainControl:true}, 
-                video: {facingMode: { exact: "environment" }, width:{ideal:1280}, height:{ideal:720}} 
-            }).catch(async () => { return await navigator.mediaDevices.getUserMedia({ audio: true, video: {facingMode: "environment"} }); });
-
-            document.getElementById('scan-video').srcObject = stream;
-            document.getElementById('cam-video-bg').srcObject = stream;
-            document.getElementById('keep-alive-video').srcObject = stream;
-            document.getElementById('seed-video').srcObject = stream;
-            
-            document.getElementById('scan-video').play();
-            document.getElementById('cam-video-bg').play();
-            
-            const bg = document.getElementById('bg-noise');
-            if(bg) { bg.volume = 0.1; await bg.play().then(()=>bg.pause()).catch(()=>{}); }
-            
-            initAudioContext(); 
-
-            if('geolocation' in navigator) {
-                navigator.geolocation.watchPosition(p => {
-                    const s = (p.coords.latitude * 10000) % 10;
-                    currentPitch = 0.3 + (s/20); 
-                }, null, {enableHighAccuracy:true});
-            }
-            
-            if(GEMINI_API_KEY) validateApiKey(GEMINI_API_KEY);
-            else updateApiStatus(null);
-
-            show('s-scan'); scanQR();
-        } catch(e) { alert("Error: " + e.message); }
-    }
-    
-    function initAudioContext() {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
-        destNode = audioCtx.createMediaStreamDestination();
-        
-        micSource = audioCtx.createMediaStreamSource(stream);
-        micGainNode = audioCtx.createGain();
-        micGainNode.gain.value = 0; 
-        micSource.connect(micGainNode);
-        micGainNode.connect(destNode);
-        
-        const bgAudioEl = document.getElementById('bg-noise');
-        bgSourceNode = audioCtx.createMediaElementSource(bgAudioEl);
-        bgGainNode = audioCtx.createGain();
-        bgGainNode.gain.value = 1.0;
-        
-        bgSourceNode.connect(bgGainNode);
-        bgGainNode.connect(destNode); 
-        bgGainNode.connect(audioCtx.destination); 
-        
-        window.bgAudioElement = bgAudioEl;
-    }
-
-    function openAuthModal() { document.getElementById('modal-auth').classList.add('active'); }
-    function closeAuthModal() { document.getElementById('modal-auth').classList.remove('active'); }
-    function checkAuth() {
-        if(document.getElementById('auth-pass').value === "OBR1995@") {
-            isStandalone = true; closeAuthModal(); updateStatusUI(false); updateMenuAccess(); show('s-menu');
-        } else alert("Error");
-    }
-    function scanQR() {
-        const v = document.getElementById('scan-video'); const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
-        function loop() {
-            if(isStandalone) return;
-            if(v.readyState===4 && document.getElementById('s-scan').classList.contains('active')) {
-                cvs.width=v.videoWidth; cvs.height=v.videoHeight; ctx.drawImage(v,0,0);
-                const c = jsQR(ctx.getImageData(0,0,cvs.width,cvs.height).data, cvs.width, cvs.height);
-                if(c) { link(c.data); return; }
-            }
-            requestAnimationFrame(loop);
-        } loop();
-    }
-    function link(id) {
-        hostId = id; isStandalone = false; peer = new Peer();
-        peer.on('open', () => { updateStatusUI(true); updateMenuAccess(); if(GEMINI_API_KEY) validateApiKey(GEMINI_API_KEY); show('s-menu'); });
-        peer.on('error', () => { updateStatusUI(false); alert("Error Red"); location.reload(); });
-        peer.on('disconnected', () => updateStatusUI(false));
-        if(destNode) makeCall();
-    }
-    function makeCall() { if(!peer || !hostId || !destNode) return; peer.call(hostId, destNode.stream); }
-
-    function openApiSettings() { document.getElementById('input-api-key').value = GEMINI_API_KEY; document.getElementById('modal-api').classList.add('active'); }
-    async function saveApiKey() {
-        const key = document.getElementById('input-api-key').value.trim();
-        if(key.length > 10) {
-            localStorage.setItem('obr_api_key_mic', key); GEMINI_API_KEY = key;
-            document.getElementById('modal-api').classList.remove('active');
-            updateApiStatus(undefined); validateApiKey(key); alert("GUARDADO");
-        }
-    }
-    async function validateApiKey(key) {
-        try {
-            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: "Ping" }] }] }) });
-            if(r.ok) updateApiStatus(true); else updateApiStatus(false);
-        } catch(e) { updateApiStatus(false); }
-    }
-
-    function setMode(m) {
-        if(m === 'mic' && isStandalone) { alert("No disponible en modo offline"); return; }
-        if(m === 'spirit' && !GEMINI_API_KEY) { openApiSettings(); return; }
-        if(m === 'spirit' && document.getElementById('btn-spirit').classList.contains('locked')) return;
-        
-        if(m === 'spirit') {
-             document.getElementById('modal-photo').classList.add('active');
-             document.getElementById('seed-video').play();
-        } else {
-             isSpiritVoxActive = false;
-             updateToggleUI();
-             show('s-live');
-        }
-    }
-    function closePhotoModal() { document.getElementById('modal-photo').classList.remove('active'); }
-    
-    async function captureAndAnalyze() {
-        const status = document.getElementById('photo-status'); const spinner = document.getElementById('loading-spinner'); const videoPreview = document.getElementById('seed-video');
-        if(!videoPreview.videoWidth) return;
-        status.innerText = "ANALIZANDO..."; spinner.style.display = 'block';
-        const cvs = document.createElement('canvas'); cvs.width = 640; cvs.height = 480;
-        cvs.getContext('2d').drawImage(videoPreview, 0, 0, 640, 480);
-        const b64 = cvs.toDataURL('image/jpeg', 0.6).split(',')[1];
-        const apiCall = new Promise(async (resolve, reject) => {
-            try {
-                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({contents:[{parts:[{text: "100 PALABRAS SUELTAS mayúsculas separadas por '|'. Muebles, objetos, terror."}, {inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
-                });
-                const d = await r.json(); const raw = d.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                if(raw) { spiritScript = raw.split('|').map(s => s.trim().replace(/[^a-zA-ZÀ-ÿ0-9 ]/g, '')).filter(s => s.length > 2); isFallbackMode = false; resolve(); } else reject("Empty");
-            } catch(e) { reject(e); }
-        });
-        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 5000));
-        try { await Promise.race([apiCall, timeout]); } catch(e) { isFallbackMode = true; }
-        finally {
-            isCalibrated = true; populateDictionary();
-            setTimeout(() => { document.getElementById('modal-photo').classList.remove('active'); switchToSpiritMode(); }, 1000);
-        }
-    }
-    
-    function switchToSpiritMode() {
-        isSpiritVoxActive = true;
-        if(audioCtx.state === 'suspended') audioCtx.resume();
-        updateToggleUI();
-        initSpeech();
-        enableButton();
-        show('s-live');
-    }
-    
-    function toggleSpiritVox() {
-        isSpiritVoxActive = !isSpiritVoxActive;
-        updateToggleUI();
-    }
-
-    function updateToggleUI() {
-        const btnToggle = document.getElementById('btn-toggle-mode');
-        const icon = document.getElementById('toggle-icon');
-        const uiSpirit = document.querySelector('.invoke-container');
-        const uiMic = document.getElementById('ui-mic-overlay');
-        const camBg = document.getElementById('cam-video-bg');
-        const bgStatic = document.getElementById('bg-static');
-        const dict = document.getElementById('btn-dictionary');
-        const bgAudio = document.getElementById('bg-noise');
-
-        if(isSpiritVoxActive) {
-            icon.className = "fas fa-ghost"; btnToggle.classList.remove('mic-active');
-            uiSpirit.style.opacity = '1'; uiSpirit.style.pointerEvents = 'auto'; uiMic.classList.remove('active');
-            document.getElementById('spirit-text').style.display = 'block';
-            camBg.style.display = 'block'; bgStatic.style.opacity = '0';
-            bgAudio.play(); micGainNode.gain.value = 0;
-            startPassiveLoop(); dict.style.display = 'block';
-        } else {
-            icon.className = "fas fa-microphone"; btnToggle.classList.add('mic-active');
-            uiSpirit.style.opacity = '0'; uiSpirit.style.pointerEvents = 'none'; uiMic.classList.add('active');
-            document.getElementById('spirit-text').style.display = 'none';
-            camBg.style.display = 'none'; bgStatic.style.opacity = '1';
-            bgAudio.pause(); micGainNode.gain.value = 1.0;
-            clearInterval(autoSpiritInterval); dict.style.display = 'none';
-        }
-    }
-
-    function populateDictionary() { const c = document.getElementById('word-list-container'); c.innerHTML = ""; spiritScript.forEach(w => { const s = document.createElement('div'); s.innerText = w; s.className="word-item text-cyan-400 font-mono"; c.appendChild(s); }); }
-    function openDictionary() { document.getElementById('modal-dictionary').classList.add('active'); }
-
-    function enableButton() {
-        const btn = document.getElementById('invoke-btn'); const label = document.getElementById('invoke-label');
-        btn.disabled = false; label.innerText = "PULSA PARA PREGUNTAR"; label.style.color="#fff"; btn.className = 'invoke-btn ready';
-        triggerGreenPulse();
-    }
-    function triggerGreenPulse() { const b=document.getElementById('invoke-btn'); b.classList.add('success'); setTimeout(()=>b.classList.remove('success'),600); }
-
-    function startPassiveLoop() {
-        clearInterval(autoSpiritInterval);
-        autoSpiritInterval = setInterval(() => {
-            if(!isProcessing && isSpiritVoxActive) triggerRandomWord();
-        }, 4000 + Math.random()*4000); 
-    }
-    
-    function triggerRandomWord() {
-        if(!spiritScript || spiritScript.length===0) return;
-        const word = spiritScript[Math.floor(Math.random() * spiritScript.length)];
-        const txt = document.getElementById('spirit-text');
-        txt.innerText = word.toUpperCase(); txt.style.opacity = 1;
-        speakWithEcho(word);
-        setTimeout(()=> txt.style.opacity=0, 3000);
-    }
-
-    function initSpeech() {
-        if('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-            recognition.lang = 'es-ES'; recognition.continuous = false;
-            recognition.onresult = e => triggerRealtimeAI(e.results[0][0].transcript);
-        }
-    }
-
-    function startListening() {
-        if(isProcessing || !isSpiritVoxActive) return;
-        isProcessing = true;
-        clearInterval(autoSpiritInterval); 
-        micGainNode.gain.value = 1.0; bgGainNode.gain.value = 0.2; 
-        const btn = document.getElementById('invoke-btn');
-        btn.classList.remove('ready'); btn.classList.add('listening'); 
-        document.getElementById('invoke-label').innerText = "ESCUCHANDO..."; document.getElementById('invoke-label').style.color = "#00ff41";
-        recognition.start();
-    }
-
-    function stopListening() {
-        recognition.stop();
-        const btn = document.getElementById('invoke-btn');
-        btn.classList.remove('listening'); btn.classList.add('locked'); btn.disabled = true;         
-        document.getElementById('invoke-label').innerText = "ANALIZANDO..."; document.getElementById('invoke-label').style.color = "#ffae00";
-        micGainNode.gain.value = 0; 
-        speechTimeout = setTimeout(() => {
-            if(isProcessing) { triggerRandomWord(); resetUIState(); }
-        }, 2000);
-    }
-
-    async function triggerRealtimeAI(question) {
-        clearTimeout(speechTimeout);
-        const txt = document.getElementById('spirit-text'); txt.innerText = "..."; txt.style.opacity = 1;
-        if(!question || question.length < 2) { triggerRandomWord(); resetUIState(); return; }
-        try {
-            const cvs = document.createElement('canvas'); const vid = document.getElementById('cam-video-bg'); 
-            cvs.width = 640; cvs.height = 480; if(isSpiritVoxActive) cvs.getContext('2d').drawImage(vid, 0, 0, 640, 480);
-            const b64 = cvs.toDataURL('image/jpeg', 0.5).split(',')[1];
-            const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({contents:[{parts:[{text: `Rol: Espíritu humano real. Pregunta: "${question}". Responde directo. Max 2 palabras.`},{inline_data:{mime_type:"image/jpeg",data:b64}}]}]})
-            });
-            const d = await r.json(); const ans = d.candidates?.[0]?.content?.parts?.[0]?.text;
-            if(ans) { txt.innerText = ans.toUpperCase(); speakWithEcho(ans); } else throw new Error("No text");
-        } catch(e) { triggerRandomWord(); }
-        setTimeout(resetUIState, 4000); 
-    }
-    
-    function resetUIState() {
-        isProcessing = false; if(isSpiritVoxActive) bgGainNode.gain.value = 1.0; 
-        document.getElementById('spirit-text').style.opacity = 0;
-        enableButton(); startPassiveLoop();
     }
     
     function logout() { if(peer) peer.destroy(); location.reload(); }
-    function loadMemories(){} function initMoveNet(){} function initSensors(){} function fetchRealTemperature(){}
 
 </script>
 </body>
