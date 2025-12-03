@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>OBR LINK v41.3 FINAL</title>
+    <title>OBR LINK v41.5 FINAL</title>
     
     <link rel="apple-touch-icon" href="obr-logo.png">
     <link rel="icon" type="image/png" href="obr-logo.png">
@@ -101,7 +101,7 @@
         }
         #scan-video { width: 100%; height: 100%; object-fit: cover; opacity: 1; }
         
-        /* EFECTO DE ESCANEO (REUTILIZABLE) */
+        /* EFECTO DE ESCANEO */
         .scan-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to bottom, transparent 40%, rgba(0, 243, 255, 0.4) 50%, transparent 60%);
@@ -124,27 +124,24 @@
             z-index: 60; cursor: pointer;
         }
 
-        /* BOTONES DISCRETOS (TRANSLUCIDOS) */
+        /* CLASE BOTONES */
         .discrete-btn {
             position: absolute; z-index: 60;
-            width: 40px; height: 40px; font-size: 1rem;
+            width: 45px; height: 45px; font-size: 1.2rem;
             display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; background: rgba(0,0,0,0.3); /* Mas transparente */
+            border-radius: 50%; background: rgba(0,0,0,0.4); 
             border: 1px solid rgba(255,255,255,0.2);
-            color: rgba(255,255,255,0.7);
+            color: rgba(255,255,255,0.8);
             transition: all 0.3s;
             cursor: pointer;
         }
         .discrete-btn:active { background: var(--primary); color: black; opacity: 1; }
         
-        /* POSICION BANCO DE PALABRAS AJUSTADA (BAJO SALIR) */
-        #btn-wordbank { top: 100px; right: 20px; }
-        
         #btn-location-change { bottom: 30px; left: 30px; }
-        
+        #btn-location-change.tuning { animation: spinTune 1s infinite linear; border-color: var(--warn); color: var(--warn); opacity: 1; }
+
         #btn-wordbank.loading { border-color: var(--warn); color: var(--warn); animation: pulseOrange 0.5s infinite; opacity: 1; }
         #btn-wordbank.ready { border-color: var(--success); color: var(--success); animation: pulseGreen 0.3s 2; opacity: 1; }
-        #btn-location-change.tuning { animation: spinTune 1s infinite linear; border-color: var(--warn); color: var(--warn); opacity: 1; }
 
         @keyframes spinTune { 100% { transform: rotate(360deg); } }
         @keyframes pulseOrange { 50% { box-shadow: 0 0 25px var(--warn); transform: scale(1.1); } }
@@ -220,6 +217,17 @@
         @keyframes ripple { 0% { width: 100%; height: 100%; opacity: 0.8; border-width: 4px; } 100% { width: 250%; height: 250%; opacity: 0; border-width: 0px; } }
         @keyframes pulseMic { 0% { box-shadow: 0 0 20px var(--primary); } 50% { box-shadow: 0 0 60px var(--primary); } 100% { box-shadow: 0 0 20px var(--primary); } }
 
+        /* REGLAS FINALES DE POSICIONAMIENTO FORZADO */
+        #btn-wordbank { 
+            position: absolute !important;
+            top: 80px !important; 
+            right: 20px !important; 
+            bottom: auto !important; 
+            left: auto !important; 
+            margin: 0 !important;
+            z-index: 100 !important;
+        }
+
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -236,16 +244,16 @@
     <div id="s-login" class="screen active">
         <img src="obr-logo.png" class="w-32 mb-6 animate-pulse" onerror="this.style.display='none'">
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
-        <p class="text-xs text-gray-400 font-mono mb-10">SISTEMA RESTAURADO v41.3</p>
+        <p class="text-xs text-gray-400 font-mono mb-10">SISTEMA RESTAURADO v41.5</p>
         <button id="btn-enter-system" class="app-btn justify-center font-bold tracking-widest" onclick="window.startSystem()">INICIAR SISTEMA</button>
     </div>
 
-    <!-- 2. SCANNER CON EFECTO DE BARRIDO -->
+    <!-- 2. SCANNER -->
     <div id="s-scan" class="screen">
         <div id="scan-overlay-dark"></div>
         <div id="scan-frame">
             <video id="scan-video" playsinline muted></video>
-            <!-- NUEVO EFECTO ESCANER -->
+            <!-- EFECTO ESCANER -->
             <div class="scan-overlay" style="display: block;"></div> 
         </div>
         <div class="absolute top-24 text-center w-full text-cyan-400 font-bold text-sm" style="z-index:20;">ESCANEAR QR DETECTOR</div>
@@ -364,10 +372,9 @@
     let currentEntityName = "DESCONOCIDO";
     let isTuning = false;
     
-    // LISTAS DE NOMBRES RESTAURADAS (FIX)
     const MALE_NAMES = ["JUAN", "PEDRO", "LUIS", "JOSE", "CARLOS", "MIGUEL", "DAVID", "JORGE", "MANUEL", "ANTONIO"];
     const FEMALE_NAMES = ["ANA", "MARIA", "CARMEN", "ISABEL", "ELENA", "LUCIA", "SOFIA", "LAURA", "MARTA", "ROSA"];
-    const NAMES_DB = [...MALE_NAMES, ...FEMALE_NAMES]; // Fallback
+    const NAMES_DB = [...MALE_NAMES, ...FEMALE_NAMES]; 
 
     let isStandalone = false;
     let hudInterval; 
@@ -648,7 +655,10 @@
     function speakWithEcho(text) {
         if('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            if(bgToLocalGain) bgToLocalGain.gain.value = 0.2; 
+            
+            // GATE DE AUDIO MODERADO (50% en vez de 20%)
+            if(bgToLocalGain) bgToLocalGain.gain.value = 0.5; 
+            
             if(micGainNode && !isMicMode) { micGainNode.gain.value = GAIN_MIC_LISTEN_AI; }
             
             const safeText = text.toLowerCase();
