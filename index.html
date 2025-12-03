@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>OBR LINK v41.5 FINAL</title>
+    <title>CEL SARRA DEL PEÑA</title>
     
     <link rel="apple-touch-icon" href="obr-logo.png">
     <link rel="icon" type="image/png" href="obr-logo.png">
@@ -45,13 +45,6 @@
             user-select: text !important;
             touch-action: auto !important;
             -webkit-touch-callout: default !important;
-        }
-
-        #battery-saver {
-            position: fixed; inset: 0; z-index: 9999;
-            background: rgba(0, 0, 0, 0.65);
-            pointer-events: none;
-            display: none;
         }
 
         #bg-static { 
@@ -124,7 +117,7 @@
             z-index: 60; cursor: pointer;
         }
 
-        /* CLASE BOTONES */
+        /* BOTONES DISCRETOS (TRANSLUCIDOS) */
         .discrete-btn {
             position: absolute; z-index: 60;
             width: 45px; height: 45px; font-size: 1.2rem;
@@ -137,11 +130,21 @@
         }
         .discrete-btn:active { background: var(--primary); color: black; opacity: 1; }
         
+        #btn-wordbank { 
+            position: absolute !important;
+            top: 80px !important; 
+            right: 20px !important; 
+            bottom: auto !important; 
+            left: auto !important; 
+            margin: 0 !important;
+            z-index: 100 !important;
+        }
+        
         #btn-location-change { bottom: 30px; left: 30px; }
-        #btn-location-change.tuning { animation: spinTune 1s infinite linear; border-color: var(--warn); color: var(--warn); opacity: 1; }
-
+        
         #btn-wordbank.loading { border-color: var(--warn); color: var(--warn); animation: pulseOrange 0.5s infinite; opacity: 1; }
         #btn-wordbank.ready { border-color: var(--success); color: var(--success); animation: pulseGreen 0.3s 2; opacity: 1; }
+        #btn-location-change.tuning { animation: spinTune 1s infinite linear; border-color: var(--warn); color: var(--warn); opacity: 1; }
 
         @keyframes spinTune { 100% { transform: rotate(360deg); } }
         @keyframes pulseOrange { 50% { box-shadow: 0 0 25px var(--warn); transform: scale(1.1); } }
@@ -217,22 +220,10 @@
         @keyframes ripple { 0% { width: 100%; height: 100%; opacity: 0.8; border-width: 4px; } 100% { width: 250%; height: 250%; opacity: 0; border-width: 0px; } }
         @keyframes pulseMic { 0% { box-shadow: 0 0 20px var(--primary); } 50% { box-shadow: 0 0 60px var(--primary); } 100% { box-shadow: 0 0 20px var(--primary); } }
 
-        /* REGLAS FINALES DE POSICIONAMIENTO FORZADO */
-        #btn-wordbank { 
-            position: absolute !important;
-            top: 80px !important; 
-            right: 20px !important; 
-            bottom: auto !important; 
-            left: auto !important; 
-            margin: 0 !important;
-            z-index: 100 !important;
-        }
-
     </style>
 </head>
 <body oncontextmenu="return false;">
 
-    <div id="battery-saver"></div>
     <div id="bg-static"></div>
     <video id="cam-video-bg" playsinline autoplay muted loop></video>
     <div id="hud-layer"></div>
@@ -244,7 +235,7 @@
     <div id="s-login" class="screen active">
         <img src="obr-logo.png" class="w-32 mb-6 animate-pulse" onerror="this.style.display='none'">
         <h1 class="text-3xl font-bold tracking-widest text-white mb-2">OBR LINK</h1>
-        <p class="text-xs text-gray-400 font-mono mb-10">SISTEMA RESTAURADO v41.5</p>
+        <p class="text-xs text-gray-400 font-mono mb-10">SISTEMA RESTAURADO v41.6</p>
         <button id="btn-enter-system" class="app-btn justify-center font-bold tracking-widest" onclick="window.startSystem()">INICIAR SISTEMA</button>
     </div>
 
@@ -296,11 +287,11 @@
         </div>
         <div id="btn-mic-pro" class="app-btn" onclick="enterMicPro()">
             <i class="fas fa-microphone-lines text-2xl text-cyan-400"></i>
-            <div><div class="font-bold text-sm">MODO MICRÓFONO</div><div id="mic-status" class="text-[10px] text-gray-400">Audio Puro / visitas</div></div>
+            <div><div class="font-bold text-sm">MODO MICRÓFONO</div><div id="mic-status" class="text-[10px] text-gray-400">Audio Puro / Cam OFF</div></div>
         </div>
         <div id="btn-spirit-box" class="app-btn red locked" onclick="enterSpiritBox()">
             <i class="fas fa-ghost text-2xl text-red-500"></i>
-            <div><div class="font-bold text-sm">SPIRIT BOX</div><div id="api-status-text" class="text-[10px] text-red-400">REQUIERE API KEY</div></div>
+            <div><div class="font-bold text-sm">SPIRIT BOX AI</div><div id="api-status-text" class="text-[10px] text-red-400">REQUIERE API KEY</div></div>
         </div>
     </div>
 
@@ -371,6 +362,7 @@
     let currentRate = 0.8;
     let currentEntityName = "DESCONOCIDO";
     let isTuning = false;
+    let isHoldingButton = false; // FLAG DE PRESION PARA CELULAR
     
     const MALE_NAMES = ["JUAN", "PEDRO", "LUIS", "JOSE", "CARLOS", "MIGUEL", "DAVID", "JORGE", "MANUEL", "ANTONIO"];
     const FEMALE_NAMES = ["ANA", "MARIA", "CARMEN", "ISABEL", "ELENA", "LUCIA", "SOFIA", "LAURA", "MARTA", "ROSA"];
@@ -378,7 +370,6 @@
 
     let isStandalone = false;
     let hudInterval; 
-    let wakeLock = null;
     window.currentImageB64 = ""; 
 
     const GAIN_MIC_TALK = 2.0; 
@@ -387,7 +378,11 @@
 
     // --- UTILS ---
     function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-    async function requestWakeLock() { try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); document.getElementById('battery-saver').style.display = 'block'; } } catch (err) { console.log('Wake Lock Error:', err); } }
+    
+    async function requestWakeLock() {
+        try { if ('wakeLock' in navigator) { await navigator.wakeLock.request('screen'); } } catch (err) { console.log('Wake Lock Error:', err); }
+    }
+
     function updateStatusUI(online) { const dot = document.getElementById('live-dot'); const txt = document.getElementById('live-text'); const menuStat = document.getElementById('conn-status'); if(online) { if(dot) dot.className = "dot online"; if(txt) { txt.innerText = "EN VIVO"; txt.style.color="#00ff41"; } if(menuStat) { menuStat.innerText = "CONECTADO"; menuStat.style.color="#00ff41"; menuStat.style.borderColor = "#00ff41"; } } else { if(dot) dot.className = "dot offline"; if(txt) { txt.innerText = "OFFLINE"; txt.style.color="#ff0055"; } if(menuStat) { menuStat.innerText = "MODO OFFLINE"; menuStat.style.color="#ffae00"; menuStat.style.borderColor = "#ffae00"; } } }
     function checkContextInput() { document.getElementById('btn-scan-now').style.display = 'flex'; }
     function updateWordBankIcon(state) { const btn = document.getElementById('btn-wordbank'); const invoke = document.getElementById('invoke-btn'); const lbl = document.getElementById('invoke-status'); if(state === 'loading') { if(btn) btn.className = 'loading'; if(invoke) invoke.className = 'invoke-btn locked'; if(lbl) { lbl.innerText = "CALIBRANDO ENTORNO..."; lbl.style.color = "#ffae00"; } } else if (state === 'ready') { if(btn) btn.className = 'ready'; setTimeout(() => { if(btn) btn.className = ''; }, 1000); if(invoke) { invoke.disabled = false; invoke.className = 'invoke-btn ready'; } if(lbl) { lbl.innerText = "MANTENER PARA PREGUNTAR"; lbl.style.color = "#fff"; } isWordBankReady = true; } }
@@ -399,7 +394,8 @@
         if('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(""); window.speechSynthesis.speak(u); window.speechSynthesis.getVoices(); }
         try {
             try { 
-                stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: { facingMode: "environment", width:{ideal:1280}, height:{ideal:720} } }); 
+                // SOLICITUD DE VIDEO SD (480p) PARA EVITAR FREEZING EN CELULAR
+                stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } }); 
             } 
             catch(e1) { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "environment" } }); }
             
@@ -430,6 +426,9 @@
             }
             const bgEl = document.getElementById('bg-noise');
             if(bgEl) { bgSourceNode = audioCtx.createMediaElementSource(bgEl); bgToLocalGain = audioCtx.createGain(); bgToLocalGain.gain.value = 3.0; bgSourceNode.connect(bgToLocalGain); bgToLocalGain.connect(audioCtx.destination); bgToPeerGain = audioCtx.createGain(); bgToPeerGain.gain.value = 0.05; bgSourceNode.connect(bgToPeerGain); bgToPeerGain.connect(destNode); }
+            
+            // REANUDAR AUDIO CON CUALQUIER TOQUE
+            document.body.addEventListener('touchstart', function() { if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }, {once:true});
             document.body.addEventListener('click', function() { if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }, {once:true});
         } catch(e) {}
     }
@@ -489,7 +488,7 @@
         
         if(!vid || vid.readyState !== 4) { status.innerText = "CÁMARA INICIANDO..."; return; }
         
-        // 1. FREEZE VISUAL (Pausar video)
+        // 1. FREEZE VISUAL
         vid.pause();
         // 2. ACTIVAR EFECTO ESCANER
         document.getElementById('preview-scan-overlay').style.display = 'block';
@@ -525,7 +524,6 @@
         // WAIT FOR EFFECT THEN START
         setTimeout(() => { 
             document.getElementById('modal-photo').classList.remove('active'); 
-            // Reset preview elements for next time
             document.getElementById('preview-scan-overlay').style.display = 'none';
             vid.play();
             startSpiritBoxActive(); 
@@ -576,22 +574,50 @@
         }
     };
     
-    // --- RECONOCIMIENTO ---
+    // --- RECONOCIMIENTO (MODO ESCUCHA CONTINUA) ---
     function pressFinger() {
-        if(isProcessing || isMicMode || !isWordBankReady || isTuning) return; isProcessing = true; 
+        if(isProcessing || isMicMode || !isWordBankReady || isTuning) return; 
+        isProcessing = true; 
+        isHoldingButton = true; // FLAG ACTIVADA
+        
         window.speechSynthesis.cancel();
+        
+        // ASEGURAR QUE AUDIO CONTEXT ESTA VIVO
+        if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
         document.getElementById('invoke-btn').classList.add('active'); document.getElementById('invoke-status').innerText = "ESCUCHANDO..."; 
         clearInterval(passiveInterval); 
+        
         const vid = document.getElementById('cam-video-bg'); 
         const cvs = document.createElement('canvas'); cvs.width=320; cvs.height=240; 
         if(vid && vid.readyState >= 2) { cvs.getContext('2d').drawImage(vid,0,0,320,240); window.currentImageB64 = cvs.toDataURL('image/jpeg', 0.5).split(',')[1]; }
+        
         if(micGainNode) micGainNode.gain.value = GAIN_MIC_TALK; 
-        if(recognition) { try { recognition.start(); } catch(e) { console.error(e); isProcessing=false; triggerFallback(); } }
+        
+        startRecognitionSafely();
     }
 
     function releaseFinger() {
-        if(isMicMode) return; document.getElementById('invoke-btn').classList.remove('active'); document.getElementById('invoke-status').innerText = "MANTENER PARA PREGUNTAR";
-        if(recognition) recognition.stop(); if(micGainNode) micGainNode.gain.value = GAIN_MIC_MUTE; setTimeout(() => { if(isProcessing) { triggerFallback(); } }, 4000); 
+        isHoldingButton = false; // FLAG DESACTIVADA
+        if(isMicMode) return; 
+        
+        document.getElementById('invoke-btn').classList.remove('active'); document.getElementById('invoke-status').innerText = "MANTENER PARA PREGUNTAR";
+        
+        if(recognition) recognition.stop(); 
+        if(micGainNode) micGainNode.gain.value = GAIN_MIC_MUTE; 
+        
+        setTimeout(() => { if(isProcessing) { triggerFallback(); } }, 4000); 
+    }
+
+    function startRecognitionSafely() {
+        if(recognition) {
+            try { 
+                recognition.start(); 
+            } catch(e) { 
+                console.error("Rec start error:", e); 
+                // SI YA ESTA CORRIENDO, NO HACER NADA
+            }
+        }
     }
 
     function triggerFallback() {
@@ -600,7 +626,11 @@
 
     function initSpeech() {
         if('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition(); recognition.lang = 'es-ES'; recognition.continuous = false; recognition.interimResults = false;
+            recognition = new webkitSpeechRecognition(); 
+            recognition.lang = 'es-ES'; 
+            recognition.continuous = false; // MODO COMANDO
+            recognition.interimResults = false;
+            
             recognition.onresult = async e => {
                 let rawText = e.results[0][0].transcript.trim();
                 let cleanText = rawText.charAt(0).toUpperCase() + rawText.slice(1);
@@ -640,8 +670,24 @@
                     }
                 } catch(x) { console.error(x); triggerFallback(); } isProcessing = false; 
             };
-            recognition.onerror = (e) => { if(e.error === 'no-speech' || e.error === 'network') triggerFallback(); else { isProcessing = false; startPassiveLoop(); } };
-            recognition.onend = () => { };
+            
+            recognition.onerror = (e) => { 
+                console.log("Rec Error:", e.error);
+                if (isHoldingButton && (e.error === 'no-speech' || e.error === 'network')) {
+                    // SI HUBO SILENCIO PERO SIGUE PRESIONANDO, REINICIAR (ANTI-CORTE)
+                    recognition.stop();
+                    setTimeout(() => startRecognitionSafely(), 100);
+                } else if (!isHoldingButton) {
+                    isProcessing = false; startPassiveLoop(); 
+                }
+            };
+            
+            recognition.onend = () => { 
+                // SI TERMINO PERO SIGUE PRESIONANDO, REINICIAR
+                if (isHoldingButton) {
+                    startRecognitionSafely();
+                }
+            };
         }
     }
 
@@ -655,10 +701,7 @@
     function speakWithEcho(text) {
         if('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            
-            // GATE DE AUDIO MODERADO (50% en vez de 20%)
             if(bgToLocalGain) bgToLocalGain.gain.value = 0.5; 
-            
             if(micGainNode && !isMicMode) { micGainNode.gain.value = GAIN_MIC_LISTEN_AI; }
             
             const safeText = text.toLowerCase();
@@ -673,3 +716,4 @@
 </script>
 </body>
 </html>
+
